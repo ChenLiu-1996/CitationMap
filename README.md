@@ -5,7 +5,7 @@ Chen Liu, CS PhD Candidate at Yale University
 ## Purpose
 This is a simple Python tool to generate a HTML citation world map from your Google Scholar ID.
 
-It is easy to install ([PyPI](https://pypi.org/project/citation-map/)) and easy to use (see [Usage](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#usage) section).
+It is easy to install (`pip install citation-map`, available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [Usage](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#usage) section).
 
 ## Warning
 1. This script is a bit slow. On my personal computer, it takes half a minute to process each citation. If you have thousands of citations, it may or may not be a good idea to use this script.
