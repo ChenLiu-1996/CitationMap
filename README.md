@@ -13,7 +13,7 @@ pip install citation-map
 
 2. Find your Google Scholar ID.
 
-On your Google Scholar website, the string `YOUR_GOOGLE_SCHOLAR_ID` in the URL `https://scholar.google.com/citations?user=YOUR_GOOGLE_SCHOLAR_ID` be will be your Google Scholar ID. Ignore the configuration strings such as `&hl=en` or `&view_op=list_works&sortby=pubdate`.
+    On your Google Scholar website, the string `YOUR_GOOGLE_SCHOLAR_ID` in the URL `https://scholar.google.com/citations?user=YOUR_GOOGLE_SCHOLAR_ID` be will be your Google Scholar ID. Ignore the configuration strings such as `&hl=en` or `&view_op=list_works&sortby=pubdate`.
 
 3. In an empty Python script, run the following.
 ```
