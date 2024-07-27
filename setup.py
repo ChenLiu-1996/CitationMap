@@ -5,13 +5,13 @@ with open('README.md') as f:
 
 setup(
     name='citation-map',
-    version='0.1',
+    version='1.1',
     license='MIT',
     author='Chen Liu',
     author_email='chen.liu.cl2482@yale.edu',
     packages={'citation_map'},
     # package_dir={'': ''},
-    description='Google Scholar Citation World Map.',
+    description='A simple tool to generate your Google Scholar citation world map.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/ChenLiu-1996/CitationMap',

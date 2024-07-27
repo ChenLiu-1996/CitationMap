@@ -51,26 +51,28 @@ def __geocode_locations(locations):
             print(f"Error geocoding location {location}: {e}")
     return coordinates
 
-def __create_map(coordinates):
+def __create_map(coordinates, pin_colorful: bool = True):
     '''
     Step 4: Create the Map.
     '''
-    # citation_map = folium.Map(location=[20, 0], zoom_start=2)
-    # for lat, lon, location in coordinates:
-    #     folium.Marker([lat, lon], popup=location).add_to(citation_map)
-    # return citation_map
     citation_map = folium.Map(location=[20, 0], zoom_start=2)
-    colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred',
-              'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
-              'darkpurple', 'white', 'pink', 'lightblue', 'lightgreen',
-              'gray', 'black', 'lightgray']
-    for lat, lon, location in coordinates:
-        color = random.choice(colors)
-        folium.Marker([lat, lon], popup=location, icon=folium.Icon(color=color)).add_to(citation_map)
+    if pin_colorful:
+        colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred',
+                'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
+                'darkpurple', 'pink', 'lightblue', 'lightgreen',
+                'gray', 'black', 'lightgray']
+        for lat, lon, location in coordinates:
+            color = random.choice(colors)
+            folium.Marker([lat, lon], popup=location, icon=folium.Icon(color=color)).add_to(citation_map)
+    else:
+        for lat, lon, location in coordinates:
+            folium.Marker([lat, lon], popup=location).add_to(citation_map)
     return citation_map
 
-def citation_map_from_google_scholar_id(scholar_id: str,
-                                        use_proxy: bool = False):
+def generate_citation_map(scholar_id: str,
+                          use_proxy: bool = False,
+                          pin_colorful: bool = True,
+                          output_path: str = 'citation_map.html'):
     '''
     Google Scholar Citation World Map.
 
@@ -80,14 +82,18 @@ def citation_map_from_google_scholar_id(scholar_id: str,
     use_proxy: bool
         If true, we will use a scholarly proxy.
         It is necessary for some environments to avoid blocks, but it usually makes things slower.
-
+    pin_colorful: bool
+        If true, the location pins will have a variety of colors.
+        Otherwise, it will only have one color.
+    output_path: str
+        The path to the output HTML file.
     '''
 
     if use_proxy:
         pg = ProxyGenerator()
         pg.FreeProxies()
         scholarly.use_proxy(pg)
-        print('Proxy used.')
+        print('Using proxy.')
 
     author = __fetch_google_scholar_profile(scholar_id)
     print('Author profile found, with %d publications.' % len(author['publications']))
@@ -98,12 +104,12 @@ def citation_map_from_google_scholar_id(scholar_id: str,
     coordinates = __geocode_locations(locations)
     print('Converted the locations to Geocodes.')
 
-    citation_map = __create_map(coordinates)
-    citation_map.save('citation_map.html')
-    print("Map created and saved as citation_map.html")
+    citation_map = __create_map(coordinates, pin_colorful=pin_colorful)
+    citation_map.save(output_path)
+    print("Map created and saved as citation_map.html.")
 
 
 if __name__ == "__main__":
     # Replace this with your Google Scholar ID.
     scholar_id = "3rDjnykAAAAJ"
-    citation_map_from_google_scholar_id(scholar_id, use_proxy=False)
+    generate_citation_map(scholar_id, use_proxy=False, pin_colorful=True, output_path='citation_map.html')

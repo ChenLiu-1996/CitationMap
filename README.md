@@ -12,7 +12,8 @@ It is easy to install (`pip install citation-map`, available on [PyPI](https://p
 2. I tried to use multiprocessing, but unfortunately the excessive visits get me blocked by Google Scholar.
 
 ## Expected Outcome
-When you run the code properly, you will get an HTML file. If you open that HTML file on a browser, you will see your own version of the following citation world map.
+You will be given an HTML file as the output of the script. If you open it on a browser, you will see your own version of the following citation world map.
+
 <img src = "assets/citation_world_map.png" width=800>
 
 ## Usage
@@ -23,16 +24,20 @@ pip install citation-map
 
 2. Find your Google Scholar ID.
 
-    On your Google Scholar profile, the string `GOOGLE_SCHOLAR_ID` in the URL `https://scholar.google.com/citations?user=GOOGLE_SCHOLAR_ID` be will be your Google Scholar ID. Ignore the configuration strings such as `&hl=en` or `&view_op=list_works&sortby=pubdate`.
+    - Open your Google Scholar profile. The URL should take the form of `https://scholar.google.com/citations?user=GOOGLE_SCHOLAR_ID`. In this case, your Google Scholar ID is just the string `GOOGLE_SCHOLAR_ID`.
+    - Please kindly ignore configuration strings such as `&hl=en` (host language is English) or `&sortby=pubdate` (sort the works by date of publication).
 
 3. In an empty Python script (for example, [the demo script](https://github.com/ChenLiu-1996/CitationMap/demo/demo.py)), run the following.
 ```
-from citation_map import citation_map_from_google_scholar_id
+from citation_map import generate_citation_map
 
 # This is my Google Scholar ID. Replace this with your ID.
 scholar_id = "3rDjnykAAAAJ"
-citation_map_from_google_scholar_id(scholar_id)
+generate_citation_map(scholar_id)
 ```
+
+You can take a look at additional input arguments of the function `generate_citation_map` in case you need those functionalities.
+
 
 ## Dependencies
 ```
