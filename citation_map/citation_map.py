@@ -10,7 +10,7 @@ def __fetch_google_scholar_profile(scholar_id):
     Step 1: Fetch Google Scholar Profile using Scholar ID.
     '''
     author = scholarly.search_author_id(scholar_id)
-    author = scholarly.fill(author, sections=["publications"])
+    author = scholarly.fill(author, sections=['publications'])
     return author
 
 def __parse_profile(author):
@@ -22,13 +22,16 @@ def __parse_profile(author):
     but unfortunately the frequent visiting makes Google Scholar block me. T_T
     You are very welcome to submit a pull request if you can help optimize this code.
     '''
-    citation_locations = []
-    for pub in tqdm(author['publications'], desc='publication iterator'):
+    citing_institutions = []
+    for pub_idx, pub in enumerate(tqdm(author['publications'], desc='publication iterator')):
         pub = scholarly.fill(pub)
         if 'citedby_url' in pub:
             citing_paper_obj = scholarly.citedby(pub)
             citing_paper_list = [item for item in citing_paper_obj]
-            for citing_paper in tqdm(citing_paper_list, desc='citation iterator'):
+            for citing_paper in tqdm(citing_paper_list,
+                                     desc='citation iterator (for publication #%d/%d)' % (
+                                        pub_idx + 1, len(author['publications'])
+                                     )):
                 if 'author_id' in citing_paper:
                     author_id_list = citing_paper['author_id']
                     author_id_list = [item for item in author_id_list if item]  # Filter out empty author ids.
@@ -37,22 +40,22 @@ def __parse_profile(author):
                         citing_author = scholarly.search_author_id(author_id)
                         citing_author = scholarly.fill(citing_author)
                         if 'affiliation' in citing_author:
-                            citation_locations.append(citing_author['affiliation'])
-    return citation_locations
+                            citing_institutions.append(citing_author['affiliation'])
+    return citing_institutions
 
-def __geocode_locations(locations):
+def __geocode_locations(institutions):
     '''
-    Step 3: Convert locations in plain text to Geocode.
+    Step 3: Convert institutions in plain text to Geocode.
     '''
-    geolocator = Nominatim(user_agent="citation_mapper")
+    geolocator = Nominatim(user_agent='citation_mapper')
     coordinates = []
-    for location in locations:
+    for institution in institutions:
         try:
-            geo_location = geolocator.geocode(location)
+            geo_location = geolocator.geocode(institution)
             if geo_location:
-                coordinates.append((geo_location.latitude, geo_location.longitude, location))
+                coordinates.append((geo_location.latitude, geo_location.longitude, institution))
         except Exception as e:
-            print(f"Error geocoding location {location}: {e}")
+            print(f'Error geocoding institution {institution}: {e}')
     return coordinates
 
 def __create_map(coordinates, pin_colorful: bool = True):
@@ -74,9 +77,10 @@ def __create_map(coordinates, pin_colorful: bool = True):
     return citation_map
 
 def generate_citation_map(scholar_id: str,
+                          output_path: str = 'citation_map.html',
                           use_proxy: bool = False,
                           pin_colorful: bool = True,
-                          output_path: str = 'citation_map.html'):
+                          print_citing_institutions: bool = True):
     '''
     Google Scholar Citation World Map.
 
@@ -85,13 +89,19 @@ def generate_citation_map(scholar_id: str,
     scholar_id: str
         Your Google Scholar ID.
     use_proxy: bool
+        (default is False)
         If true, we will use a scholarly proxy.
         It is necessary for some environments to avoid blocks, but it usually makes things slower.
     pin_colorful: bool
+        (default is True)
         If true, the location pins will have a variety of colors.
         Otherwise, it will only have one color.
     output_path: str
+        (default is 'citation_map.html')
         The path to the output HTML file.
+    print_citing_institutions: bool
+        (default is True)
+        If true, print the list of citing institutions (affiliations of citing authors).
     '''
 
     if use_proxy:
@@ -103,18 +113,25 @@ def generate_citation_map(scholar_id: str,
     author = __fetch_google_scholar_profile(scholar_id)
     print('Author profile found, with %d publications.' % len(author['publications']))
 
-    locations = __parse_profile(author)
-    print('A total of %d citation locations recorded.' % len(locations))
+    institutions = __parse_profile(author)
+    print('A total of %d citation locations recorded.' % len(institutions))
 
-    coordinates = __geocode_locations(locations)
+    coordinates = __geocode_locations(institutions)
     print('Converted the locations to Geocodes.')
 
     citation_map = __create_map(coordinates, pin_colorful=pin_colorful)
     citation_map.save(output_path)
-    print("Map created and saved as citation_map.html.")
+    print('Map created and saved as citation_map.html.')
+
+    if print_citing_institutions:
+        print('\n\nList of all institutions:')
+        for institution in sorted(institutions):
+            print(institution)
+    return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Replace this with your Google Scholar ID.
-    scholar_id = "3rDjnykAAAAJ"
-    generate_citation_map(scholar_id, use_proxy=False, pin_colorful=True, output_path='citation_map.html')
+    scholar_id = '3rDjnykAAAAJ'
+    generate_citation_map(scholar_id, output_path='citation_map.html',
+                          use_proxy=False, pin_colorful=True, print_citing_institutions=True)

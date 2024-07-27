@@ -42,7 +42,7 @@ If you open it on a browser, you will see your own version of the following cita
     generate_citation_map(scholar_id)
     ```
 
-    You can take a look at additional input arguments of the function `generate_citation_map` (listed below) in case you need those functionalities.
+    You can take a look at the input arguments (listed below) of the function `generate_citation_map` in case you need those functionalities.
 
     ```
     Parameters
@@ -54,14 +54,16 @@ If you open it on a browser, you will see your own version of the following cita
         If true, we will use a scholarly proxy.
         It is necessary for some environments to avoid blocks, but it usually makes things slower.
     pin_colorful: bool
-        (default it True)
+        (default is True)
         If true, the location pins will have a variety of colors.
         Otherwise, it will only have one color.
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
+    print_citing_institutions: bool
+        (default is True)
+        If true, print the list of citing institutions (affiliations of citing authors).
     ```
-
 
 ## Dependencies
 Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`) are already taken care of when you install via pip.
