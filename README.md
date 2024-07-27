@@ -62,13 +62,7 @@ If you open it on a browser, you will see your own version of the following cita
 
 
 ## Dependencies
-Dependencies are already taken care of when you install via pip.
-```
-scholarly
-geopy
-folium
-tqdm
-```
+Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`) are already taken care of when you install via pip.
 
 ## Acknowledgements
 This script was written under the assistance of ChatGPT-4o, but of course after intense debugging.
