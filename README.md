@@ -49,6 +49,9 @@ If you open it on a browser, you will see your own version of the following cita
     ----
     scholar_id: str
         Your Google Scholar ID.
+    output_path: str
+        (default is 'citation_map.html')
+        The path to the output HTML file.
     use_proxy: bool
         (default is False)
         If true, we will use a scholarly proxy.
@@ -57,9 +60,6 @@ If you open it on a browser, you will see your own version of the following cita
         (default is True)
         If true, the location pins will have a variety of colors.
         Otherwise, it will only have one color.
-    output_path: str
-        (default is 'citation_map.html')
-        The path to the output HTML file.
     print_citing_institutions: bool
         (default is True)
         If true, print the list of citing institutions (affiliations of citing authors).
