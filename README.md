@@ -36,7 +36,21 @@ You will be given an HTML file as the output of the script. If you open it on a 
     generate_citation_map(scholar_id)
     ```
 
-You can take a look at additional input arguments of the function `generate_citation_map` in case you need those functionalities.
+    - You can take a look at additional input arguments of the function `generate_citation_map` in case you need those functionalities.
+
+    ```
+    scholar_id: str
+        Your Google Scholar ID.
+    use_proxy: bool
+        If true, we will use a scholarly proxy.
+        It is necessary for some environments to avoid blocks, but it usually makes things slower.
+    pin_colorful: bool
+        If true, the location pins will have a variety of colors.
+        Otherwise, it will only have one color.
+    output_path: str
+        The path to the output HTML file.
+
+    ```
 
 
 ## Dependencies
