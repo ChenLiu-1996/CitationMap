@@ -7,7 +7,7 @@ import random
 
 def __fetch_google_scholar_profile(scholar_id):
     '''
-    Step 1: Fetch Google Scholar Profile using Scholar ID
+    Step 1: Fetch Google Scholar Profile using Scholar ID.
     '''
     author = scholarly.search_author_id(scholar_id)
     author = scholarly.fill(author, sections=["publications"])
@@ -16,7 +16,11 @@ def __fetch_google_scholar_profile(scholar_id):
 def __parse_profile(author):
     '''
     Step 2: Parse the Profile and find citing author affiliations.
-    Without parallel processing.
+
+    NOTE: Usually this is the most time-consuming part of the code.
+    I tried to parallel process this, which indeed makes it faster,
+    but unfortunately the frequent visiting makes Google Scholar block me. T_T
+    You are very welcome to submit a pull request if you can help optimize this code.
     '''
     citation_locations = []
     for pub in tqdm(author['publications'], desc='publication iterator'):
@@ -58,9 +62,9 @@ def __create_map(coordinates, pin_colorful: bool = True):
     citation_map = folium.Map(location=[20, 0], zoom_start=2)
     if pin_colorful:
         colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred',
-                'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
-                'darkpurple', 'pink', 'lightblue', 'lightgreen',
-                'gray', 'black', 'lightgray']
+                  'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
+                  'darkpurple', 'pink', 'lightblue', 'lightgreen',
+                  'gray', 'black', 'lightgray']
         for lat, lon, location in coordinates:
             color = random.choice(colors)
             folium.Marker([lat, lon], popup=location, icon=folium.Icon(color=color)).add_to(citation_map)
@@ -76,6 +80,7 @@ def generate_citation_map(scholar_id: str,
     '''
     Google Scholar Citation World Map.
 
+    Parameters
     ----
     scholar_id: str
         Your Google Scholar ID.

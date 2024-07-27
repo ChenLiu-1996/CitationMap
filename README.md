@@ -1,6 +1,6 @@
 # Google Scholar Citation World Map
 
-Chen Liu, CS PhD Candidate at Yale University
+[Chen Liu](https://www.chenliu1996.com/), CS PhD Candidate (Machine Learning, MedicalVision, AI4Science) at Yale University.
 
 ## Purpose
 This is a simple Python tool to generate a HTML citation world map from your Google Scholar ID.
@@ -39,6 +39,8 @@ You will be given an HTML file as the output of the script. If you open it on a 
     You can take a look at additional input arguments of the function `generate_citation_map` (listed below) in case you need those functionalities.
 
     ```
+    Parameters
+    ----
     scholar_id: str
         Your Google Scholar ID.
     use_proxy: bool
@@ -61,4 +63,4 @@ tqdm
 ```
 
 ## Acknowledgements
-This script was written under the help of ChatGPT-4o, but of course after intense debugging.
+This script was written under the assistance of ChatGPT-4o, but of course after intense debugging.
