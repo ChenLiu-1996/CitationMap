@@ -1,5 +1,12 @@
 # Google Scholar Citation World Map
 
+[![Latest PyPI version](https://img.shields.io/pypi/v/citation-map.svg)](https://pypi.org/project/citation-map/)
+[![PyPI license](https://img.shields.io/pypi/l/citation-map.svg)](https://pypi.python.org/pypi/citation-map/)
+[![PyPI download month](https://img.shields.io/pypi/dm/citation-map.svg)](https://pypi.python.org/pypi/citation-map/)
+[![PyPI download day](https://img.shields.io/pypi/dd/citation-map.svg)](https://pypi.python.org/pypi/citation-map/)
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+
+
 [Chen Liu](https://www.chenliu1996.com/), CS PhD Candidate at Yale University.
 
 Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4Science.
