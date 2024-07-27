@@ -24,7 +24,11 @@ If you open it on a browser, you will see your own version of the following cita
 <img src = "assets/citation_world_map.png" width=800>
 
 ## News
-`citation-map` has been upgraded to version 2.0! I finally managed to drastically speed up the process using multiprocessing (without being blocked by Google Scholar). On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
+`citation-map` has been upgraded to version 2.0!
+
+I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
+
+On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
 
 ## Usage
 1. Install the package.
