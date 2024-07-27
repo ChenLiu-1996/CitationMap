@@ -23,11 +23,8 @@ If you open it on a browser, you will see your own version of the following cita
 
 <img src = "assets/citation_world_map.png" width=800>
 
-## Warning
-1. Runtime concerns.
-    - This script is a bit slow. On my personal computer, it takes half a minute to process each citation. If you have thousands of citations, it may or may not be a good idea to use this script.
-    - I tried to use multiprocessing, but sadly the excessive visits get me blocked by Google Scholar.
-    - I am a researcher and am not very good at software engineering. If you have any idea how to improve the runtime, you are very welcome to submit a pull request.
+## News
+`citation-map` has been upgraded to version 2.0! I finally managed to drastically speed up the process using multiprocessing (without being blocked by Google Scholar). On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
 
 ## Usage
 1. Install the package.
@@ -59,6 +56,9 @@ If you open it on a browser, you will see your own version of the following cita
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
+    num_processes: int
+        (default is 16)
+        Number of separate processes for parallel processing.
     use_proxy: bool
         (default is False)
         If true, we will use a scholarly proxy.
