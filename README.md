@@ -36,7 +36,7 @@ You will be given an HTML file as the output of the script. If you open it on a 
     generate_citation_map(scholar_id)
     ```
 
-    - You can take a look at additional input arguments of the function `generate_citation_map` in case you need those functionalities.
+    You can take a look at additional input arguments of the function `generate_citation_map` in case you need those functionalities.
 
     ```
     scholar_id: str
