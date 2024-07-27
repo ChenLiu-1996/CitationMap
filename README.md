@@ -27,7 +27,7 @@ You will be given an HTML file as the output of the script. If you open it on a 
     - Open your Google Scholar profile. The URL should take the form of `https://scholar.google.com/citations?user=GOOGLE_SCHOLAR_ID`. In this case, your Google Scholar ID is just the string `GOOGLE_SCHOLAR_ID`.
     - Please kindly ignore configuration strings such as `&hl=en` (host language is English) or `&sortby=pubdate` (sort the works by date of publication).
 
-3. In an empty Python script (for example, [the demo script](https://github.com/ChenLiu-1996/CitationMap/demo/demo.py)), run the following.
+3. In an empty Python script (for example, [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py)), run the following.
     ```
     from citation_map import generate_citation_map
 
