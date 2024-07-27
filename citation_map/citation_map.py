@@ -124,7 +124,7 @@ def generate_citation_map(scholar_id: str,
     print('Map created and saved as citation_map.html.')
 
     if print_citing_institutions:
-        print('\n\nList of all institutions:')
+        print('\n\nList of all citing institutions:')
         for institution in sorted(institutions):
             print(institution)
     return
