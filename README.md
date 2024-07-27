@@ -18,9 +18,9 @@ You will be given an HTML file as the output of the script. If you open it on a 
 
 ## Usage
 1. Install the package.
-```
-pip install citation-map
-```
+    ```
+    pip install citation-map
+    ```
 
 2. Find your Google Scholar ID.
 
@@ -28,13 +28,13 @@ pip install citation-map
     - Please kindly ignore configuration strings such as `&hl=en` (host language is English) or `&sortby=pubdate` (sort the works by date of publication).
 
 3. In an empty Python script (for example, [the demo script](https://github.com/ChenLiu-1996/CitationMap/demo/demo.py)), run the following.
-```
-from citation_map import generate_citation_map
+    ```
+    from citation_map import generate_citation_map
 
-# This is my Google Scholar ID. Replace this with your ID.
-scholar_id = "3rDjnykAAAAJ"
-generate_citation_map(scholar_id)
-```
+    # This is my Google Scholar ID. Replace this with your ID.
+    scholar_id = "3rDjnykAAAAJ"
+    generate_citation_map(scholar_id)
+    ```
 
 You can take a look at additional input arguments of the function `generate_citation_map` in case you need those functionalities.
 

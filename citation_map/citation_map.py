@@ -19,12 +19,12 @@ def __parse_profile(author):
     Without parallel processing.
     '''
     citation_locations = []
-    for pub in tqdm(author['publications']):
+    for pub in tqdm(author['publications'], desc='publication iterator'):
         pub = scholarly.fill(pub)
         if 'citedby_url' in pub:
             citing_paper_obj = scholarly.citedby(pub)
             citing_paper_list = [item for item in citing_paper_obj]
-            for citing_paper in tqdm(citing_paper_list):
+            for citing_paper in tqdm(citing_paper_list, desc='citation iterator'):
                 if 'author_id' in citing_paper:
                     author_id_list = citing_paper['author_id']
                     author_id_list = [item for item in author_id_list if item]  # Filter out empty author ids.
