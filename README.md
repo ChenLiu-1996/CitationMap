@@ -1,6 +1,6 @@
 # Google Scholar Citation World Map
 
-[Chen Liu](https://www.chenliu1996.com/), CS PhD Candidate (Machine Learning, MedicalVision, AI4Science) at Yale University.
+[Chen Liu](https://www.chenliu1996.com/), CS PhD Candidate (Machine Learning, Medical Vision, AI4Science) at Yale University.
 
 ## Purpose
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
