@@ -47,13 +47,13 @@ If you open it on a browser, you will see your own version of the following cita
     ----
     scholar_id: str
         Your Google Scholar ID.
-    use_proxy: bool
+    use_proxy: bool (default is False)
         If true, we will use a scholarly proxy.
         It is necessary for some environments to avoid blocks, but it usually makes things slower.
-    pin_colorful: bool
+    pin_colorful: bool (default it True)
         If true, the location pins will have a variety of colors.
         Otherwise, it will only have one color.
-    output_path: str
+    output_path: str (default is 'citation_map.html')
         The path to the output HTML file.
     ```
 
