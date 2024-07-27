@@ -43,7 +43,7 @@ def __parse_profile(author):
                             citing_institutions.append(citing_author['affiliation'])
     return citing_institutions
 
-def __geocode_locations(institutions):
+def __text_to_geocode(institutions):
     '''
     Step 3: Convert institutions in plain text to Geocode.
     '''
@@ -111,20 +111,20 @@ def generate_citation_map(scholar_id: str,
         print('Using proxy.')
 
     author = __fetch_google_scholar_profile(scholar_id)
-    print('\nAuthor profile found, with %d publications.' % len(author['publications']))
+    print('\nAuthor profile found, with %d publications.\n' % len(author['publications']))
 
     institutions = __parse_profile(author)
-    print('\nA total of %d citation locations recorded.' % len(institutions))
+    print('\nA total of %d citating institutions recorded.' % len(institutions))
 
-    coordinates = __geocode_locations(institutions)
-    print('\nConverted the locations to Geocodes.')
+    coordinates = __text_to_geocode(institutions)
+    print('\nConverted the institutions to Geocodes.')
 
     citation_map = __create_map(coordinates, pin_colorful=pin_colorful)
     citation_map.save(output_path)
     print('\nMap created and saved as citation_map.html.')
 
     if print_citing_institutions:
-        print('\n\nList of all affiliations of citing authors:')
+        print('\nList of all citing institutions:\n')
         for institution in sorted(institutions):
             print(institution)
     return
