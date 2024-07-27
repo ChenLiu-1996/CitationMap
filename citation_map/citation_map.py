@@ -111,20 +111,20 @@ def generate_citation_map(scholar_id: str,
         print('Using proxy.')
 
     author = __fetch_google_scholar_profile(scholar_id)
-    print('Author profile found, with %d publications.' % len(author['publications']))
+    print('\nAuthor profile found, with %d publications.' % len(author['publications']))
 
     institutions = __parse_profile(author)
-    print('A total of %d citation locations recorded.' % len(institutions))
+    print('\nA total of %d citation locations recorded.' % len(institutions))
 
     coordinates = __geocode_locations(institutions)
-    print('Converted the locations to Geocodes.')
+    print('\nConverted the locations to Geocodes.')
 
     citation_map = __create_map(coordinates, pin_colorful=pin_colorful)
     citation_map.save(output_path)
-    print('Map created and saved as citation_map.html.')
+    print('\nMap created and saved as citation_map.html.')
 
     if print_citing_institutions:
-        print('\n\nList of all citing institutions:')
+        print('\n\nList of all affiliations of citing authors:')
         for institution in sorted(institutions):
             print(institution)
     return

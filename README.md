@@ -38,7 +38,7 @@ If you open it on a browser, you will see your own version of the following cita
     from citation_map import generate_citation_map
 
     # This is my Google Scholar ID. Replace this with your ID.
-    scholar_id = "3rDjnykAAAAJ"
+    scholar_id = '3rDjnykAAAAJ'
     generate_citation_map(scholar_id)
     ```
 
