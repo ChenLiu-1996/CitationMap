@@ -96,11 +96,13 @@ If you open it on a browser, you will see your own version of the following cita
 ## Changelog
 
 <details>
-<summary>Version 3.7</summary>
+<summary>Version 3.8</summary>
 <br>
-I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
+In 3.7, I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
 
-**Now we should be able to handle users with more citations than before. I tested on a profile with 400 citations without running into any issue.**
+In 3.8, I removed multiprocessing for `geopy.geocoders` as per their official documentation. Also I cleaned up some unnecessary `scholarly` calls which further helps us not get blacklisted by Google Scholar.
+
+**Now we should be able to handle users with more citations than before. I tested on a profile with 1000 citations without running into any issue.**
 </details>
 
 <details>
