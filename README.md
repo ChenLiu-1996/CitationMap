@@ -75,8 +75,22 @@ If you open it on a browser, you will see your own version of the following cita
         If true, print the list of citing institutions (affiliations of citing authors).
     ```
 
+## Limitations
+
+1. This tool is purely baesd on Google Scholar. As a result, you are expected to have underestimations due to reasons such as:
+    - Your Google Scholar profile is not up-to-date.
+    - Some papers citing you are not indexed by Google Scholar.
+    - Some authors citing you do not have Google Scholar profile.
+    - Some authors citing you do not self-report their affiliations.
+2. `geopy.geocoders` is used to convert the citing authors' self-reported affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
+    - Underestimation if correct affiliations are not found by `geopy.geocoders`.
+    - Underestimation if we experience communication error with `geopy.geocoders`.
+    - Overestimation if non-affiliation terms are incorrectly identified as locations by `geopy.geocoders`.
+    **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
+
+
 ## Debug
-1. `scholarly._proxy_generator.MaxTriesExceededException` or `[WARNING!] Blocked by CAPTCHA or robot check`
+1. `MaxTriesExceededException` or `[WARNING!] Blocked by CAPTCHA or robot check`
 
     - From my experience, both are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
@@ -84,12 +98,17 @@ If you open it on a browser, you will see your own version of the following cita
 
 ## Changelog
 
-### Version 3.7
+<details>
+<summary>### Version 3.7</summary>
+<br>
 I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
 
 **Now we should be able to handle users with more citations than before. I tested on a profile with 400 citations without running into any issue.**
+</details>
 
-### Version 3.0
+<details>
+<summary>### Version 3.0</summary>
+<br>
 I realized a problem with how I used `geopy.geocoders`. A majority of the authors' self-entered affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
 
 For example, we would want the substring "Yale University" from the string "Assistant Professor at Yale University".
@@ -97,20 +116,27 @@ For example, we would want the substring "Yale University" from the string "Assi
 I applied a simple fix with some rule-based natural language processing. This helps us identify many missing citing locations.
 
 **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
+</details>
 
-### Version 2.0
+<details>
+<summary>### Version 2.0</summary>
+<br>
 I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
 
 On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
 
 With that said, please be careful and do not run this tool frequently. I can easily get on Google Scholar's blacklist after a few runs.
+</details>
 
-### Version 1.0
+<details>
+<summary>### Version 1.0</summary>
+<br>
 Very basic functionality.
 
 This script is a bit slow. On my personal computer, it takes half a minute to process each citation. If you have thousands of citations, it may or may not be a good idea to use this script.
 
 I tried to use multiprocessing, but unfortunately the excessive visits get me blocked by Google Scholar.
+</details>
 
 ## Dependencies
 Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`) are already taken care of when you install via pip.
