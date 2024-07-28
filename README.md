@@ -62,7 +62,7 @@ If you open it on a browser, you will see your own version of the following cita
     num_processes_major: int
         (default is 16)
         Number of processes for parallel processing.
-        Related to `scholarly.citedby()`. This causes Google Scholar blocks if set too high.
+        Related to `scholarly.citedby()`. Primary reason for Google Scholar bans.
     num_processes_minor: int
         (default is 32)
         Number of processes for parallel processing.
