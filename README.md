@@ -77,7 +77,7 @@ If you open it on a browser, you will see your own version of the following cita
 
 ## Limitations
 
-1. This tool is purely baesd on Google Scholar. As a result, you are expected to have underestimations due to reasons such as:
+1. This tool is purely based on Google Scholar. As a result, you are expected to have underestimations due to reasons such as:
     - Your Google Scholar profile is not up-to-date.
     - Some papers citing you are not indexed by Google Scholar.
     - Some authors citing you do not have Google Scholar profile.
