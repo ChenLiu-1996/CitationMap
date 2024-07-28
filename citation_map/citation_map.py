@@ -1,6 +1,10 @@
+import re
 import random
 import time
 import itertools
+
+from typing import List
+import numpy as np
 from scholarly import scholarly, ProxyGenerator
 from geopy.geocoders import Nominatim
 import folium
@@ -8,7 +12,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 
 
-def fetch_google_scholar_profile(scholar_id):
+def fetch_google_scholar_profile(scholar_id: str):
     '''
     Step 1: Fetch Google Scholar Profile using Scholar ID.
     '''
@@ -16,11 +20,10 @@ def fetch_google_scholar_profile(scholar_id):
     author = scholarly.fill(author, sections=['publications'])
     return author
 
-def find_all_citing_institutions(publications, num_processes: int = 16):
+def find_all_citing_institutions(publications, num_processes: int = 16) -> List[str]:
     '''
     Step 2. Final all citing institutions (i.e., insitutions of citing authors).
     '''
-
     # Fetch metadata for all publications, in parallel.
     with Pool(processes=num_processes) as pool:
         all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications), desc='Filling metadata for all publications...', total=len(publications)))
@@ -41,24 +44,35 @@ def find_all_citing_institutions(publications, num_processes: int = 16):
 
     return sorted(all_citing_insitutions)
 
-def text_to_geocode(institutions):
+def clean_institution_names(institutions: List[str]) -> List[str]:
     '''
-    Step 3: Convert institutions in plain text to Geocode.
+    Step 3. Clean up the name of institutions from the author's self-entered Google Scholar affiliation.
     '''
-    geolocator = Nominatim(user_agent='citation_mapper')
-    coordinates = []
-    for institution in institutions:
-        try:
-            geo_location = geolocator.geocode(institution)
-            if geo_location:
-                coordinates.append((geo_location.latitude, geo_location.longitude, institution))
-        except Exception as e:
-            print(f'Error geocoding institution {institution}: {e}')
+    cleaned_institutions = []
+    for institution_string in institutions:
+        # Use a regular expression to split the string by ',', ';', or 'and'.
+        substring_list = [part.strip() for part in re.split(r'[;,]|\band\b', institution_string)]
+        for substring in substring_list:
+            # Use a regular expression to remove anything before 'at', or '@'.
+            cleaned_institution = re.sub(r'.*?\bat\b|.*?@', '', substring, flags=re.IGNORECASE).strip()
+            # Use a regular expression to check if the string is a common weird string.
+            is_common_weird_string = re.search(re.compile(r'\b(director|manager|chair|engineer|programmer|scientist|professor|lecturer|phd|student|ph\.d|department of)\b', re.IGNORECASE), substring)
+            if not is_common_weird_string:
+                cleaned_institutions.append(cleaned_institution)
+    return cleaned_institutions
+
+def institution_text_to_geocode(institutions: List[str], num_processes: int = 16) -> List:
+    '''
+    Step 4: Convert institutions in plain text to Geocode.
+    '''
+    with Pool(processes=num_processes) as pool:
+        coordinates = list(tqdm(pool.imap(__text_to_geocode, institutions), desc='Finding all geographic coordinates...', total=len(institutions)))
+    coordinates = [item for item in coordinates if item is not None]  # Filter out empty coordinates.
     return coordinates
 
 def create_map(coordinates, pin_colorful: bool = True):
     '''
-    Step 4: Create the Citation World Map.
+    Step 5: Create the Citation World Map.
     '''
     citation_map = folium.Map(location=[20, 0], zoom_start=2)
     if pin_colorful:
@@ -99,6 +113,15 @@ def __institutions_from_authors(author_id):
     if 'affiliation' in citing_author:
         return citing_author['affiliation']
     return []
+
+def __text_to_geocode(institution):
+    geolocator = Nominatim(user_agent='citation_mapper')
+    try:
+        geo_location = geolocator.geocode(institution)
+        if geo_location:
+            return (geo_location.latitude, geo_location.longitude, institution)
+    except:
+        return None
 
 def generate_citation_map(scholar_id: str,
                           output_path: str = 'citation_map.html',
@@ -142,19 +165,26 @@ def generate_citation_map(scholar_id: str,
     print('\nAuthor profile found, with %d publications.\n' % len(author_profile['publications']))
 
     institutions = find_all_citing_institutions(author_profile['publications'], num_processes=num_processes)
-    print('\nA total of %d citing institutions recorded.' % len(institutions))
+    print('\nA total of %d citing institutions recorded.\n' % len(institutions))
 
-    coordinates = text_to_geocode(institutions)
+    if print_citing_institutions:
+        print('\nList of all citing institutions before cleaning:\n')
+        for item in np.unique(institutions):
+            print(item)
+
+    cleaned_institutions = clean_institution_names(institutions)
+
+    if print_citing_institutions:
+        print('\nList of all citing institutions after cleaning:\n')
+        for item in np.unique(cleaned_institutions):
+            print(item)
+
+    coordinates = institution_text_to_geocode(institutions + cleaned_institutions)
     print('\nConverted the institutions to Geocodes.')
 
     citation_map = create_map(coordinates, pin_colorful=pin_colorful)
     citation_map.save(output_path)
-    print('\nMap created and saved as citation_map.html.')
-
-    if print_citing_institutions:
-        print('\nList of all citing institutions:\n')
-        for institution in institutions:
-            print(institution)
+    print('\nMap created and saved at %s.' % output_path)
     return
 
 

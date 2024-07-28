@@ -23,12 +23,6 @@ If you open it on a browser, you will see your own version of the following cita
 
 <img src = "assets/citation_world_map.png" width=800>
 
-## News
-`citation-map` has been upgraded to version 2.0!
-
-I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
-
-On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
 
 ## Usage
 1. Install the package.
@@ -75,6 +69,27 @@ On my personal computer, processing my profile with 100 citations took 1 hour wi
         (default is True)
         If true, print the list of citing institutions (affiliations of citing authors).
     ```
+
+## Changelog
+
+### Version 3.0
+I realized a problem with how I used `geopy.geocoders`. A majority of the authors' self-entered affiliations are not successfully found in the system and hence are not converted to geographic coordinates on the world map. For example, the string "Yale University" is a much better entry than "Assistant Professor at Yale University".
+
+I applied a simple fix with some rule-based language processing. This helps us identify many missing citing locations.
+
+### Version 2.0
+I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
+
+On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
+
+With that said, please be careful and do not run this tool frequently. I can easily get on Google Scholar's blacklist after a few runs.
+
+### Version 1.0
+Very basic functionality.
+
+This script is a bit slow. On my personal computer, it takes half a minute to process each citation. If you have thousands of citations, it may or may not be a good idea to use this script.
+
+I tried to use multiprocessing, but unfortunately the excessive visits get me blocked by Google Scholar.
 
 ## Dependencies
 Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`) are already taken care of when you install via pip.
