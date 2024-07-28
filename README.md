@@ -75,6 +75,10 @@ If you open it on a browser, you will see your own version of the following cita
         If true, print the list of citing institutions (affiliations of citing authors).
     ```
 
+## Debug
+1. `scholarly._proxy_generator.MaxTriesExceededException`
+    From my experience, this is a good indicator that your IP address is blocked by Google Scholar due to excessive or frequent crawling (using the `scholarly` package). One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
+
 ## Changelog
 
 ### Version 3.0
