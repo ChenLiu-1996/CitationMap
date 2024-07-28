@@ -30,6 +30,10 @@ If you open it on a browser, you will see your own version of the following cita
     ```
     pip install citation-map
     ```
+    Remember to upgrade to the latest version if you installed an earlier version.
+    ```
+    pip install citation-map --upgrade
+    ```
 
 2. Find your Google Scholar ID.
 
