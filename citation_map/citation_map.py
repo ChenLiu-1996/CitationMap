@@ -23,31 +23,50 @@ def find_all_citing_institutions(publications, num_processes: int = 16) -> List[
     '''
     Step 2. Final all citing institutions (i.e., insitutions of citing authors).
     '''
-    # Fetch metadata for all publications, in parallel.
-    with Pool(processes=num_processes) as pool:
-        all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications),
-                                     desc='Filling metadata for all publications...',
-                                     total=len(publications)))
+    if num_processes > 1 and isinstance(num_processes, int):
+        # Fetch metadata for all publications, in parallel.
+        with Pool(processes=num_processes) as pool:
+            all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications),
+                                        desc='Filling metadata for all publications...',
+                                        total=len(publications)))
 
-    # Find all citing papers from all publications, in parallel.
-    with Pool(processes=num_processes) as pool:
-        all_citing_papers_nested = list(tqdm(pool.imap(__citing_papers_from_publication, all_publications),
-                                             desc='Finding all citations...',
-                                             total=len(all_publications)))
-    all_citing_papers = list(itertools.chain(*all_citing_papers_nested))
+        # Find all citing papers from all publications, in parallel.
+        with Pool(processes=num_processes) as pool:
+            all_citing_papers_nested = list(tqdm(pool.imap(__citing_papers_from_publication, all_publications),
+                                                desc='Finding all citations...',
+                                                total=len(all_publications)))
+        all_citing_papers = list(itertools.chain(*all_citing_papers_nested))
 
-    # Find all citing authors from all citing papers, in parallel.
-    with Pool(processes=num_processes) as pool:
-        all_citing_authors_nested = list(tqdm(pool.imap(__authors_from_papers, all_citing_papers),
-                                              desc='Finding all citing authors...',
-                                              total=len(all_citing_papers)))
-    all_citing_authors = list(itertools.chain(*all_citing_authors_nested))
+        # Find all citing authors from all citing papers, in parallel.
+        with Pool(processes=num_processes) as pool:
+            all_citing_authors_nested = list(tqdm(pool.imap(__authors_from_papers, all_citing_papers),
+                                                desc='Finding all citing authors...',
+                                                total=len(all_citing_papers)))
+        all_citing_authors = list(itertools.chain(*all_citing_authors_nested))
 
-    # Find all citing insitutions from all citing authors, in parallel.
-    with Pool(processes=num_processes) as pool:
-        author_institution_tuple_list = list(tqdm(pool.imap(__institutions_from_authors, all_citing_authors),
-                                                  desc='Finding all citing institutions...',
-                                                  total=len(all_citing_authors)))
+        # Find all citing insitutions from all citing authors, in parallel.
+        with Pool(processes=num_processes) as pool:
+            author_institution_tuple_list = list(tqdm(pool.imap(__institutions_from_authors, all_citing_authors),
+                                                    desc='Finding all citing institutions...',
+                                                    total=len(all_citing_authors)))
+    else:
+        all_publications = []
+        for pub in tqdm(publications, desc='Filling metadata for all publications...', total=len(publications)):
+            all_publications.append(__fill_publication_metadata(pub))
+
+        all_citing_papers_nested = []
+        for pub in tqdm(all_publications, desc='Finding all citations...', total=len(all_publications)):
+            all_citing_papers_nested.append(__citing_papers_from_publication(pub))
+        all_citing_papers = list(itertools.chain(*all_citing_papers_nested))
+
+        all_citing_authors_nested = []
+        for paper in tqdm(all_citing_papers, desc='Finding all citing authors...', total=len(all_citing_papers)):
+            all_citing_authors_nested.append(__authors_from_papers(paper))
+        all_citing_authors = list(itertools.chain(*all_citing_authors_nested))
+
+        author_institution_tuple_list = []
+        for author in tqdm(all_citing_authors, desc='Finding all citing institutions...', total=len(all_citing_authors)):
+            author_institution_tuple_list.append(__institutions_from_authors(author))
 
     return author_institution_tuple_list
 
@@ -76,10 +95,18 @@ def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]],
     '''
     Step 4: Convert institutions in plain text to Geocode.
     '''
-    with Pool(processes=num_processes) as pool:
-        coordinates = list(tqdm(pool.imap(__text_to_geocode, author_institution_tuple_list),
-                                desc='Finding all geographic coordinates...',
-                                total=len(author_institution_tuple_list)))
+    if num_processes > 1 and isinstance(num_processes, int):
+        with Pool(processes=num_processes) as pool:
+            coordinates = list(tqdm(pool.imap(__text_to_geocode, author_institution_tuple_list),
+                                    desc='Finding all geographic coordinates...',
+                                    total=len(author_institution_tuple_list)))
+    else:
+        coordinates = []
+        for author_institution_tuple in tqdm(author_institution_tuple_list,
+                                             desc='Finding all geographic coordinates...',
+                                             total=len(author_institution_tuple_list)):
+            coordinates.append(__text_to_geocode(author_institution_tuple))
+
     coordinates = [item for item in coordinates if item is not None]  # Filter out empty coordinates.
     return coordinates
 
@@ -107,8 +134,9 @@ def __fill_publication_metadata(pub):
 
 def __citing_papers_from_publication(pub):
     if 'citedby_url' in pub:
-        time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
+        # time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
         citing_paper_obj = scholarly.citedby(pub)
+        # time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
         return [item for item in citing_paper_obj]
     return []
 
@@ -193,7 +221,7 @@ def generate_citation_map(scholar_id: str,
         for item in sorted(cleaned_author_institution_tuple_list):
             print(item)
 
-    coordinates = institution_text_to_geocode(author_institution_tuple_list + cleaned_author_institution_tuple_list)
+    coordinates = institution_text_to_geocode(author_institution_tuple_list + cleaned_author_institution_tuple_list, num_processes=num_processes)
     print('\nConverted the institutions to Geocodes.')
 
     citation_map = create_map(coordinates, pin_colorful=pin_colorful)

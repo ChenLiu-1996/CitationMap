@@ -77,7 +77,10 @@ If you open it on a browser, you will see your own version of the following cita
 
 ## Debug
 1. `scholarly._proxy_generator.MaxTriesExceededException`
-    From my experience, this is a good indicator that your IP address is blocked by Google Scholar due to excessive or frequent crawling (using the `scholarly` package). One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
+
+    - From my experience, this is a good indicator that your IP address is blocked by Google Scholar due to excessive or frequent crawling (using the `scholarly` package).
+    - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
+    - In case changing your IP address does not help, you can try to reduce the number of processes (e.g., setting `num_processes=1`).
 
 ## Changelog
 
