@@ -86,6 +86,7 @@ If you open it on a browser, you will see your own version of the following cita
     - Underestimation if correct affiliations are not found by `geopy.geocoders`.
     - Underestimation if we experience communication error with `geopy.geocoders`.
     - Overestimation if non-affiliation terms are incorrectly identified as locations by `geopy.geocoders`.
+
     **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
 
 
