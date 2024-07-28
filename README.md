@@ -59,14 +59,9 @@ If you open it on a browser, you will see your own version of the following cita
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
-    num_processes_major: int
+    num_processes: int
         (default is 16)
         Number of processes for parallel processing.
-        Related to `scholarly.citedby()`. Primary reason for Google Scholar bans.
-    num_processes_minor: int
-        (default is 32)
-        Number of processes for parallel processing.
-        Related to all other processes. Usually not causing problems.
     use_proxy: bool
         (default is False)
         If true, we will use a scholarly proxy.
@@ -81,18 +76,27 @@ If you open it on a browser, you will see your own version of the following cita
     ```
 
 ## Debug
-1. `scholarly._proxy_generator.MaxTriesExceededException`
+1. `scholarly._proxy_generator.MaxTriesExceededException` or `[WARNING!] Blocked by CAPTCHA or robot check`
 
-    - From my experience, this is a good indicator that your IP address is blocked by Google Scholar due to excessive or frequent crawling (using the `scholarly` package).
+    - From my experience, both are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
-    - In case this does not help, you can try to reduce the number of processes (e.g., setting `num_processes_major=1`).
+    - In case this does not help, you can try to change IP adress and reduce the number of processes (e.g., setting `num_processes=1`).
 
 ## Changelog
 
-### Version 3.0
-I realized a problem with how I used `geopy.geocoders`. A majority of the authors' self-entered affiliations are not successfully found in the system and hence are not converted to geographic coordinates on the world map. For example, the string "Yale University" is a much better entry than "Assistant Professor at Yale University".
+### Version 3.7
+I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
 
-I applied a simple fix with some rule-based language processing. This helps us identify many missing citing locations.
+**Now we should be able to handle users with more citations than before. I tested on a profile with 400 citations without running into any issue.**
+
+### Version 3.0
+I realized a problem with how I used `geopy.geocoders`. A majority of the authors' self-entered affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
+
+For example, we would want the substring "Yale University" from the string "Assistant Professor at Yale University".
+
+I applied a simple fix with some rule-based natural language processing. This helps us identify many missing citing locations.
+
+**Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
 
 ### Version 2.0
 I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.

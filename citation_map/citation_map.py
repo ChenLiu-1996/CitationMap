@@ -11,6 +11,8 @@ import folium
 from tqdm import tqdm
 from multiprocessing import Pool
 
+from .scholarly_support import get_author_ids
+
 
 def fetch_google_scholar_profile(scholar_id: str):
     '''
@@ -20,13 +22,13 @@ def fetch_google_scholar_profile(scholar_id: str):
     author = scholarly.fill(author, sections=['publications'])
     return author
 
-def find_all_citing_institutions(publications, num_processes_major: int = 16, num_processes_minor: int = 32) -> List[Tuple[str]]:
+def find_all_citing_institutions(publications, num_processes: int = 16) -> List[Tuple[str]]:
     '''
     Step 2. Final all citing institutions (i.e., insitutions of citing authors).
     '''
-    if num_processes_minor > 1 and isinstance(num_processes_minor, int):
-        # Fetch metadata for all publications, in parallel.
-        with Pool(processes=num_processes_minor) as pool:
+    # Fetch metadata for all publications.
+    if num_processes > 1 and isinstance(num_processes, int):
+        with Pool(processes=num_processes) as pool:
             all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications),
                                         desc='Filling metadata for all publications...',
                                         total=len(publications)))
@@ -35,33 +37,29 @@ def find_all_citing_institutions(publications, num_processes_major: int = 16, nu
         for pub in tqdm(publications, desc='Filling metadata for all publications...', total=len(publications)):
             all_publications.append(__fill_publication_metadata(pub))
 
-    if num_processes_major > 1 and isinstance(num_processes_major, int):
-        # Find all citing papers from all publications, in parallel.
-        with Pool(processes=num_processes_major) as pool:
-            all_citing_papers_nested = list(tqdm(pool.imap(__citing_papers_from_publication, all_publications),
-                                                 desc='Finding all citations...',
-                                                 total=len(all_publications)))
-    else:
-        all_citing_papers_nested = []
-        for pub in tqdm(all_publications, desc='Finding all citations...', total=len(all_publications)):
-            all_citing_papers_nested.append(__citing_papers_from_publication_difficult(pub))
-    all_citing_papers = list(itertools.chain(*all_citing_papers_nested))
+    # Convert all publications to Google Scholar publication IDs.
+    # This is fast and no parallel processing is needed.
+    all_publication_ids = []
+    for pub in all_publications:
+        if 'cites_id' in pub:
+            for cites_id in pub['cites_id']:
+                all_publication_ids.append(cites_id)
 
-    if num_processes_minor > 1 and isinstance(num_processes_minor, int):
-        # Find all citing authors from all citing papers, in parallel.
-        with Pool(processes=num_processes_minor) as pool:
-            all_citing_authors_nested = list(tqdm(pool.imap(__authors_from_papers, all_citing_papers),
-                                                  desc='Finding all citing authors...',
-                                                  total=len(all_citing_papers)))
+    # Find all citing authors from all publications.
+    if num_processes > 1 and isinstance(num_processes, int):
+        with Pool(processes=num_processes) as pool:
+            all_citing_authors_nested = list(tqdm(pool.imap(__citing_author_ids_from_publication, all_publication_ids),
+                                                 desc='Finding all citing authors..',
+                                                 total=len(all_publication_ids)))
     else:
         all_citing_authors_nested = []
-        for paper in tqdm(all_citing_papers, desc='Finding all citing authors...', total=len(all_citing_papers)):
-            all_citing_authors_nested.append(__authors_from_papers(paper))
+        for pub in tqdm(all_publication_ids, desc='Finding all citing authors...', total=len(all_publication_ids)):
+            all_citing_authors_nested.append(__citing_author_ids_from_publication(pub))
     all_citing_authors = list(itertools.chain(*all_citing_authors_nested))
 
-    if num_processes_minor > 1 and isinstance(num_processes_minor, int):
-        # Find all citing insitutions from all citing authors, in parallel.
-        with Pool(processes=num_processes_minor) as pool:
+    # Find all citing insitutions from all citing authors.
+    if num_processes > 1 and isinstance(num_processes, int):
+        with Pool(processes=num_processes) as pool:
             author_institution_tuple_list = list(tqdm(pool.imap(__institutions_from_authors, all_citing_authors),
                                                     desc='Finding all citing institutions...',
                                                     total=len(all_citing_authors)))
@@ -83,22 +81,23 @@ def clean_institution_names(author_institution_tuple_list: List[Tuple[str]]) -> 
         for substring in substring_list:
             # Use a regular expression to remove anything before 'at', or '@'.
             cleaned_institution = re.sub(r'.*?\bat\b|.*?@', '', substring, flags=re.IGNORECASE).strip()
-            # Use a regular expression to check if the string is a common weird string.
-            is_common_weird_string = re.search(
+            # Use a regular expression to filter out strings that represent
+            # a person's identity rather than affiliation.
+            is_common_identity_string = re.search(
                 re.compile(
                     r'\b(director|manager|chair|engineer|programmer|scientist|professor|lecturer|phd|student|ph\.d|department of)\b',
                     re.IGNORECASE),
                 substring)
-            if not is_common_weird_string:
+            if not is_common_identity_string:
                 cleaned_author_institution_tuple_list.append((author_name, cleaned_institution))
     return cleaned_author_institution_tuple_list
 
-def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]], num_processes_minor: int = 32) -> List[Tuple[str]]:
+def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]], num_processes: int = 32) -> List[Tuple[str]]:
     '''
     Step 4: Convert institutions in plain text to Geocode.
     '''
-    if num_processes_minor > 1 and isinstance(num_processes_minor, int):
-        with Pool(processes=num_processes_minor) as pool:
+    if num_processes > 1 and isinstance(num_processes, int):
+        with Pool(processes=num_processes) as pool:
             coordinates = list(tqdm(pool.imap(__text_to_geocode, author_institution_tuple_list),
                                     desc='Finding all geographic coordinates...',
                                     total=len(author_institution_tuple_list)))
@@ -134,35 +133,12 @@ def __fill_publication_metadata(pub):
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
     return scholarly.fill(pub)
 
-def __citing_papers_from_publication(pub):
-    if 'citedby_url' in pub:
-        time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
-        citing_paper_iterator = scholarly.citedby(pub)
-        citing_paper_list = [item for item in citing_paper_iterator]
-        return citing_paper_list
-    return []
+def __citing_author_ids_from_publication(cites_id: str):
+    citing_paper_search_url = 'https://scholar.google.com/scholar?hl=en&cites=' + cites_id
+    citing_author_ids = get_author_ids(citing_paper_search_url)
+    return citing_author_ids
 
-def __citing_papers_from_publication_difficult(pub):
-    if 'citedby_url' in pub:
-        time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
-        citing_paper_iterator = scholarly.citedby(pub)
-        citing_paper_list = []
-        # Unpacking the iterator to a list invokes `scholarly`,
-        # which can easily get us blocked if not handled carefully.
-        for item in citing_paper_iterator:
-            time.sleep(random.uniform(1, 2))  # Random delay to reduce risk of being blocked.
-            citing_paper_list.append(item)
-        return citing_paper_list
-    return []
-
-def __authors_from_papers(citing_paper):
-    if 'author_id' in citing_paper:
-        author_id_list = citing_paper['author_id']
-        author_id_list = [item for item in author_id_list if item]  # Filter out empty author ids.
-        return author_id_list
-    return []
-
-def __institutions_from_authors(author_id):
+def __institutions_from_authors(author_id: str):
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
     citing_author = scholarly.search_author_id(author_id)
     citing_author = scholarly.fill(citing_author)
@@ -170,7 +146,7 @@ def __institutions_from_authors(author_id):
         return (citing_author['name'], citing_author['affiliation'])
     return []
 
-def __text_to_geocode(author_institution_tuple, max_attempts: int = 2):
+def __text_to_geocode(author_institution_tuple, max_attempts: int = 3):
     geolocator = Nominatim(user_agent='citation_mapper')
     for _ in range(max_attempts):
         try:
@@ -184,8 +160,7 @@ def __text_to_geocode(author_institution_tuple, max_attempts: int = 2):
 
 def generate_citation_map(scholar_id: str,
                           output_path: str = 'citation_map.html',
-                          num_processes_major: int = 16,
-                          num_processes_minor: int = 32,
+                          num_processes: int = 16,
                           use_proxy: bool = False,
                           pin_colorful: bool = True,
                           print_citing_institutions: bool = True):
@@ -199,14 +174,9 @@ def generate_citation_map(scholar_id: str,
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
-    num_processes_major: int
+    num_processes: int
         (default is 16)
         Number of processes for parallel processing.
-        Related to `scholarly.citedby()`. Primary reason for Google Scholar bans.
-    num_processes_minor: int
-        (default is 32)
-        Number of processes for parallel processing.
-        Related to all other processes. Usually not causing problems.
     use_proxy: bool
         (default is False)
         If true, we will use a scholarly proxy.
@@ -230,8 +200,7 @@ def generate_citation_map(scholar_id: str,
     print('\nAuthor profile found, with %d publications.\n' % len(author_profile['publications']))
 
     author_institution_tuple_list = find_all_citing_institutions(author_profile['publications'],
-                                                                 num_processes_major=num_processes_major,
-                                                                 num_processes_minor=num_processes_minor)
+                                                                 num_processes=num_processes)
     print('\nA total of %d citing institutions recorded.\n' % len(author_institution_tuple_list))
 
     if print_citing_institutions:
@@ -247,7 +216,7 @@ def generate_citation_map(scholar_id: str,
             print(item)
 
     coordinates = institution_text_to_geocode(author_institution_tuple_list + cleaned_author_institution_tuple_list,
-                                              num_processes_minor=num_processes_minor)
+                                              num_processes=num_processes)
     print('\nConverted the institutions to %d Geocodes.' % len(coordinates))
 
     citation_map = create_map(coordinates, pin_colorful=pin_colorful)
@@ -260,4 +229,4 @@ if __name__ == '__main__':
     # Replace this with your Google Scholar ID.
     scholar_id = '3rDjnykAAAAJ'
     generate_citation_map(scholar_id, output_path='citation_map.html',
-                          num_processes_minor=16, use_proxy=False, pin_colorful=True, print_citing_institutions=True)
+                          num_processes=16, use_proxy=False, pin_colorful=True, print_citing_institutions=True)
