@@ -24,17 +24,17 @@ def fetch_google_scholar_profile(scholar_id: str):
 
 def find_all_citing_institutions(publications, num_processes: int = 16) -> List[Tuple[str]]:
     '''
-    Step 2. Final all citing institutions (i.e., insitutions of citing authors).
+    Step 2. Find all citing institutions (i.e., insitutions of citing authors).
     '''
     # Fetch metadata for all publications.
     if num_processes > 1 and isinstance(num_processes, int):
         with Pool(processes=num_processes) as pool:
             all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications),
-                                        desc='Filling metadata for all publications...',
+                                        desc='Filling metadata for all publications',
                                         total=len(publications)))
     else:
         all_publications = []
-        for pub in tqdm(publications, desc='Filling metadata for all publications...', total=len(publications)):
+        for pub in tqdm(publications, desc='Filling metadata for all publications', total=len(publications)):
             all_publications.append(__fill_publication_metadata(pub))
 
     # Convert all publications to Google Scholar publication IDs.
@@ -49,11 +49,11 @@ def find_all_citing_institutions(publications, num_processes: int = 16) -> List[
     if num_processes > 1 and isinstance(num_processes, int):
         with Pool(processes=num_processes) as pool:
             all_citing_authors_nested = list(tqdm(pool.imap(__citing_author_ids_from_publication, all_publication_ids),
-                                                 desc='Finding all citing authors..',
+                                                 desc='Finding all citing authors from cited publications',
                                                  total=len(all_publication_ids)))
     else:
         all_citing_authors_nested = []
-        for pub in tqdm(all_publication_ids, desc='Finding all citing authors...', total=len(all_publication_ids)):
+        for pub in tqdm(all_publication_ids, desc='Finding all citing authors from cited publications', total=len(all_publication_ids)):
             all_citing_authors_nested.append(__citing_author_ids_from_publication(pub))
     all_citing_authors = list(itertools.chain(*all_citing_authors_nested))
 
@@ -61,11 +61,11 @@ def find_all_citing_institutions(publications, num_processes: int = 16) -> List[
     if num_processes > 1 and isinstance(num_processes, int):
         with Pool(processes=num_processes) as pool:
             author_institution_tuple_list = list(tqdm(pool.imap(__institutions_from_authors, all_citing_authors),
-                                                    desc='Finding all citing institutions...',
+                                                    desc='Finding all citing institutions from citing authors',
                                                     total=len(all_citing_authors)))
     else:
         author_institution_tuple_list = []
-        for author in tqdm(all_citing_authors, desc='Finding all citing institutions...', total=len(all_citing_authors)):
+        for author in tqdm(all_citing_authors, desc='Finding all citing institutions from citing authors', total=len(all_citing_authors)):
             author_institution_tuple_list.append(__institutions_from_authors(author))
 
     return author_institution_tuple_list
@@ -73,6 +73,8 @@ def find_all_citing_institutions(publications, num_processes: int = 16) -> List[
 def clean_institution_names(author_institution_tuple_list: List[Tuple[str]]) -> List[Tuple[str]]:
     '''
     Step 3. Clean up the name of institutions from the author's self-entered Google Scholar affiliation.
+    NOTE: This logic is very naive. Please send an issue or pull request if you have any idea how to improve it.
+    Currently we will not consider any paid service or tools that pose extra burden on the users, such as GPT API.
     '''
     cleaned_author_institution_tuple_list = []
     for author_name, institution_string in author_institution_tuple_list:
@@ -92,22 +94,26 @@ def clean_institution_names(author_institution_tuple_list: List[Tuple[str]]) -> 
                 cleaned_author_institution_tuple_list.append((author_name, cleaned_institution))
     return cleaned_author_institution_tuple_list
 
-def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]], num_processes: int = 32) -> List[Tuple[str]]:
+def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
     '''
     Step 4: Convert institutions in plain text to Geocode.
     '''
-    if num_processes > 1 and isinstance(num_processes, int):
-        with Pool(processes=num_processes) as pool:
-            coordinates = list(tqdm(pool.imap(__text_to_geocode, author_institution_tuple_list),
-                                    desc='Finding all geographic coordinates...',
-                                    total=len(author_institution_tuple_list)))
-    else:
-        coordinates = []
-        for author_institution_tuple in tqdm(author_institution_tuple_list,
-                                             desc='Finding all geographic coordinates...',
-                                             total=len(author_institution_tuple_list)):
-            coordinates.append(__text_to_geocode(author_institution_tuple))
-
+    coordinates = []
+    # NOTE: According to the Nomatim Usage Policy (https://operations.osmfoundation.org/policies/nominatim/),
+    # we are explicitly asked not to submit bulk requests on multiple threads.
+    # Therefore, we will keep it to a loop instead of multiprocessing.
+    geolocator = Nominatim(user_agent='citation_mapper')
+    for author_institution_tuple in tqdm(author_institution_tuple_list,
+                                         desc='Finding all geographic coordinates from citing institutions',
+                                         total=len(author_institution_tuple_list)):
+        for _ in range(max_attempts):
+            try:
+                author_name, institution_name = author_institution_tuple
+                geo_location = geolocator.geocode(institution_name)
+                if geo_location:
+                    coordinates.append((geo_location.latitude, geo_location.longitude, author_name, institution_name))
+            except:
+                continue
     coordinates = [item for item in coordinates if item is not None]  # Filter out empty coordinates.
     return coordinates
 
@@ -141,22 +147,10 @@ def __citing_author_ids_from_publication(cites_id: str):
 def __institutions_from_authors(author_id: str):
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
     citing_author = scholarly.search_author_id(author_id)
-    citing_author = scholarly.fill(citing_author)
     if 'affiliation' in citing_author:
         return (citing_author['name'], citing_author['affiliation'])
     return []
 
-def __text_to_geocode(author_institution_tuple, max_attempts: int = 3):
-    geolocator = Nominatim(user_agent='citation_mapper')
-    for _ in range(max_attempts):
-        try:
-            author_name, institution_name = author_institution_tuple
-            geo_location = geolocator.geocode(institution_name)
-            if geo_location:
-                return (geo_location.latitude, geo_location.longitude, author_name, institution_name)
-        except:
-            pass
-    return None
 
 def generate_citation_map(scholar_id: str,
                           output_path: str = 'citation_map.html',
@@ -203,20 +197,25 @@ def generate_citation_map(scholar_id: str,
                                                                  num_processes=num_processes)
     print('\nA total of %d citing institutions recorded.\n' % len(author_institution_tuple_list))
 
+    # Take unique tuples.
+    author_institution_tuple_list = list(set(author_institution_tuple_list))
+
     if print_citing_institutions:
         print('\nList of all citing authors and institutions before cleaning:\n')
-        for item in sorted(author_institution_tuple_list):
+        for item in sorted((author_institution_tuple_list)):
             print(item)
 
     cleaned_author_institution_tuple_list = clean_institution_names(author_institution_tuple_list)
+
+    # Take unique tuples.
+    cleaned_author_institution_tuple_list = list(set(cleaned_author_institution_tuple_list))
 
     if print_citing_institutions:
         print('\nList of all citing authors and institutions after cleaning:\n')
         for item in sorted(cleaned_author_institution_tuple_list):
             print(item)
 
-    coordinates = institution_text_to_geocode(author_institution_tuple_list + cleaned_author_institution_tuple_list,
-                                              num_processes=num_processes)
+    coordinates = institution_text_to_geocode(author_institution_tuple_list + cleaned_author_institution_tuple_list)
     print('\nConverted the institutions to %d Geocodes.' % len(coordinates))
 
     citation_map = create_map(coordinates, pin_colorful=pin_colorful)
