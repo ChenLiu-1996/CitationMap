@@ -59,9 +59,14 @@ If you open it on a browser, you will see your own version of the following cita
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
-    num_processes: int
+    num_processes_major: int
         (default is 16)
-        Number of separate processes for parallel processing.
+        Number of processes for parallel processing.
+        Related to `scholarly.citedby()`. This causes Google Scholar blocks if set too high.
+    num_processes_minor: int
+        (default is 32)
+        Number of processes for parallel processing.
+        Related to all other processes. Usually not causing problems.
     use_proxy: bool
         (default is False)
         If true, we will use a scholarly proxy.
@@ -80,7 +85,7 @@ If you open it on a browser, you will see your own version of the following cita
 
     - From my experience, this is a good indicator that your IP address is blocked by Google Scholar due to excessive or frequent crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
-    - In case changing your IP address does not help, you can try to reduce the number of processes (e.g., setting `num_processes=1`).
+    - In case this does not help, you can try to reduce the number of processes (e.g., setting `num_processes_major=1`).
 
 ## Changelog
 
