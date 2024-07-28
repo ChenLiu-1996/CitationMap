@@ -99,7 +99,7 @@ If you open it on a browser, you will see your own version of the following cita
 ## Changelog
 
 <details>
-<summary>### Version 3.7</summary>
+<summary>Version 3.7</summary>
 <br>
 I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
 
@@ -107,7 +107,7 @@ I updated the logic for webscraping and avoided using `scholarly.citeby()` which
 </details>
 
 <details>
-<summary>### Version 3.0</summary>
+<summary>Version 3.0</summary>
 <br>
 I realized a problem with how I used `geopy.geocoders`. A majority of the authors' self-entered affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
 
@@ -119,7 +119,7 @@ I applied a simple fix with some rule-based natural language processing. This he
 </details>
 
 <details>
-<summary>### Version 2.0</summary>
+<summary>Version 2.0</summary>
 <br>
 I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
 
@@ -129,7 +129,7 @@ With that said, please be careful and do not run this tool frequently. I can eas
 </details>
 
 <details>
-<summary>### Version 1.0</summary>
+<summary>Version 1.0</summary>
 <br>
 Very basic functionality.
 
