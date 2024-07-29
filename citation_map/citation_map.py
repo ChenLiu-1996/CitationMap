@@ -155,7 +155,7 @@ def institution_text_to_geocode(author_paper_institution_tuple_list: List[Tuple[
     coordinates = [item for item in coordinates if item is not None]  # Filter out empty coordinates.
     return coordinates
 
-def create_map(coordinates: List[Tuple[str]], pin_colorful: bool = True):
+def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True):
     '''
     Step 5: Create the Citation World Map.
     '''
@@ -165,23 +165,24 @@ def create_map(coordinates: List[Tuple[str]], pin_colorful: bool = True):
                   'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
                   'darkpurple', 'pink', 'lightblue', 'lightgreen',
                   'gray', 'black', 'lightgray']
-        for author_name, _, _, institution_name, lat, lon, _, _, _, _ in coordinates:
+        for author_name, _, _, institution_name, lat, lon, _, _, _, _ in coordinates_and_info:
             color = random.choice(colors)
             folium.Marker([lat, lon], popup='%s (%s)' % (institution_name, author_name),
                           icon=folium.Icon(color=color)).add_to(citation_map)
     else:
-        for author_name, _, _, institution_name, lat, lon, _, _, _, _ in coordinates:
+        for author_name, _, _, institution_name, lat, lon, _, _, _, _ in coordinates_and_info:
             folium.Marker([lat, lon], popup='%s (%s)' % (institution_name, author_name)).add_to(citation_map)
     return citation_map
 
-def export_csv(coordinates: List[Tuple[str]], csv_output_path: str) -> None:
+def export_csv(coordinates_and_info: List[Tuple[str]], csv_output_path: str) -> None:
     '''
     Step 6: Export csv file recording citing authors.
     '''
 
-    citation_df = pd.DataFrame(coordinates, columns=['citing author name', 'citing paper title', 'cited paper title',
-                                                     'affiliated institution', 'latitude', 'longitude',
-                                                     'county', 'city', 'state', 'country'])
+    citation_df = pd.DataFrame(coordinates_and_info,
+                               columns=['citing author name', 'citing paper title', 'cited paper title',
+                                        'affiliated institution', 'latitude', 'longitude',
+                                        'county', 'city', 'state', 'country'])
 
     citation_df.to_csv(csv_output_path)
     return
@@ -303,16 +304,16 @@ def generate_citation_map(scholar_id: str,
         for author, _, _, institution in sorted(cleaned_author_paper_institution_tuple_list):
             print('Author: %s, Institution: %s.' % (author, institution))
 
-    coordinates = institution_text_to_geocode(author_paper_institution_tuple_list + cleaned_author_paper_institution_tuple_list)
+    coordinates_and_info = institution_text_to_geocode(author_paper_institution_tuple_list + cleaned_author_paper_institution_tuple_list)
     # Take unique tuples.
-    coordinates = list(set(coordinates))
-    print('\nConverted the institutions to %d Geocodes.' % len(coordinates))
+    coordinates_and_info = list(set(coordinates_and_info))
+    print('\nConverted the institutions to %d Geocodes.' % len(coordinates_and_info))
 
-    citation_map = create_map(coordinates, pin_colorful=pin_colorful)
+    citation_map = create_map(coordinates_and_info, pin_colorful=pin_colorful)
     citation_map.save(output_path)
     print('\nMap created and saved at %s.\n' % output_path)
 
-    export_csv(coordinates, csv_output_path)
+    export_csv(coordinates_and_info, csv_output_path)
     print('\nCitation information exported to %s.' % csv_output_path)
     return
 
