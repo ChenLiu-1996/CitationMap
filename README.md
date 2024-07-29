@@ -10,14 +10,17 @@
 
 Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4Science.
 
+## News
+[Jul 28, 2024]
+
+Version 3.10 released. It even worked on a professor **with 10,000 citations**, which was impossible in most earlier versions.
+
 ## Purpose
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
 
 It is easy to install (`pip install citation-map`, available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [Usage](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#usage) section).
 
 **You don't need to fork this repo unless you want to make custom changes.**
-
-[Jul 28, 2024] Version 3.10 released. It even worked on a professor **with 10,000 citations**, which was impossible in most earlier versions.
 
 ## Expected Outcome
 You will be given an HTML file as the output of the script.
