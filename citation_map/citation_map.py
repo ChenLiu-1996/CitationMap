@@ -132,7 +132,7 @@ def institution_text_to_geocode(author_paper_institution_tuple_list: List[Tuple[
                 geo_location = geolocator.geocode(institution_name)
                 if geo_location:
                     # Get the full location metadata that includes county, city, state, country, etc.
-                    location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude))
+                    location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude), language='en')
                     address = location_metadata.raw['address']
                     county, city, state, country = None, None, None, None
                     if 'county' in address:
