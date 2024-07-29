@@ -95,7 +95,7 @@ If you open it on a browser, you will see your own version of the following cita
 
 
 ## Debug
-1. `MaxTriesExceededException` or `[WARNING!] Blocked by CAPTCHA or robot check`
+1. `MaxTriesExceededException` or (`[WARNING!] Blocked by CAPTCHA or robot check` for all entries).
 
     - From my experience, both are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
