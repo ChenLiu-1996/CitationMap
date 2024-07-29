@@ -1,18 +1,18 @@
+import folium
 import itertools
+import pandas as pd
+import pycountry
 import re
 import random
 import time
 
+from geopy.geocoders import Nominatim
 from multiprocessing import Pool
-import pycountry
+from scholarly import scholarly, ProxyGenerator
 from tqdm import tqdm
 from typing import List, Tuple
 
-import folium
-from geopy.geocoders import Nominatim
-from scholarly import scholarly, ProxyGenerator
-
-from .scholarly_support import get_author_ids
+from .scholarly_support import get_citing_author_ids_and_citing_papers
 
 
 def fetch_google_scholar_profile(scholar_id: str):
@@ -40,51 +40,52 @@ def find_all_citing_institutions(publications, num_processes: int = 16) -> List[
                         total=len(publications)):
             all_publications.append(__fill_publication_metadata(pub))
 
-    # Convert all publications to Google Scholar publication IDs.
+    # Convert all publications to Google Scholar publication IDs and paper titles.
     # This is fast and no parallel processing is needed.
-    all_publication_ids = []
+    all_publication_info = []
     for pub in all_publications:
         if 'cites_id' in pub:
             for cites_id in pub['cites_id']:
-                all_publication_ids.append(cites_id)
+                pub_title = pub['bib']['title']
+                all_publication_info.append((cites_id, pub_title))
 
     # Find all citing authors from all publications.
     if num_processes > 1 and isinstance(num_processes, int):
         with Pool(processes=num_processes) as pool:
-            all_citing_authors_nested = list(tqdm(pool.imap(__citing_author_ids_from_publication, all_publication_ids),
-                                                 desc='Finding citing authors from your %d publications' % len(all_publication_ids),
-                                                 total=len(all_publication_ids)))
+            all_citing_author_paper_info_nested = list(tqdm(pool.imap(__citing_authors_and_papers_from_publication, all_publication_info),
+                                                            desc='Finding citing authors and papers on your %d publications' % len(all_publication_info),
+                                                            total=len(all_publication_info)))
     else:
-        all_citing_authors_nested = []
-        for pub in tqdm(all_publication_ids,
-                        desc='Finding citing authors from your %d publications' % len(all_publication_ids),
-                        total=len(all_publication_ids)):
-            all_citing_authors_nested.append(__citing_author_ids_from_publication(pub))
-    all_citing_authors = list(itertools.chain(*all_citing_authors_nested))
+        all_citing_author_paper_info_nested = []
+        for pub in tqdm(all_publication_info,
+                        desc='Finding citing authors and papers on your %d publications' % len(all_publication_info),
+                        total=len(all_publication_info)):
+            all_citing_author_paper_info_nested.append(__citing_authors_and_papers_from_publication(pub))
+    all_citing_author_paper_info_list = list(itertools.chain(*all_citing_author_paper_info_nested))
 
     # Find all citing insitutions from all citing authors.
     if num_processes > 1 and isinstance(num_processes, int):
         with Pool(processes=num_processes) as pool:
-            author_institution_tuple_list = list(tqdm(pool.imap(__institutions_from_authors, all_citing_authors),
-                                                      desc='Finding citing institutions from %d citing authors' % len(all_citing_authors),
-                                                      total=len(all_citing_authors)))
+            author_paper_institution_tuple_list = list(tqdm(pool.imap(__institutions_from_authors, all_citing_author_paper_info_list),
+                                                            desc='Finding citing institutions from %d citing authors' % len(all_citing_author_paper_info_list),
+                                                            total=len(all_citing_author_paper_info_list)))
     else:
-        author_institution_tuple_list = []
-        for author in tqdm(all_citing_authors,
-                           desc='Finding citing institutions from %d citing authors' % len(all_citing_authors),
-                           total=len(all_citing_authors)):
-            author_institution_tuple_list.append(__institutions_from_authors(author))
+        author_paper_institution_tuple_list = []
+        for author_and_paper in tqdm(all_citing_author_paper_info_list,
+                                     desc='Finding citing institutions from %d citing authors' % len(all_citing_author_paper_info_list),
+                                     total=len(all_citing_author_paper_info_list)):
+            author_paper_institution_tuple_list.append(__institutions_from_authors(author_and_paper))
 
-    return author_institution_tuple_list
+    return author_paper_institution_tuple_list
 
-def clean_institution_names(author_institution_tuple_list: List[Tuple[str]]) -> List[Tuple[str]]:
+def clean_institution_names(author_paper_institution_tuple_list: List[Tuple[str]]) -> List[Tuple[str]]:
     '''
     Step 3. Clean up the names of institutions from the authors' affiliations on their Google Scholar profiles.
     NOTE: This logic is very naive. Please send an issue or pull request if you have any idea how to improve it.
     Currently we will not consider any paid service or tools that pose extra burden on the users, such as GPT API.
     '''
-    cleaned_author_institution_tuple_list = []
-    for author_name, institution_string in author_institution_tuple_list:
+    cleaned_author_paper_institution_tuple_list = []
+    for author_name, citing_paper_title, cited_paper_title, institution_string in author_paper_institution_tuple_list:
         # Use a regular expression to split the string by ';' or 'and'.
         substring_list = [part.strip() for part in re.split(r'[;]|\band\b', institution_string)]
         # Further split the substrings by ',' if the latter component is not a country.
@@ -99,12 +100,12 @@ def clean_institution_names(author_institution_tuple_list: List[Tuple[str]]) -> 
                 re.compile(
                     r'\b(director|manager|chair|engineer|programmer|scientist|professor|lecturer|phd|ph\.d|postdoc|doctor|student|department of)\b',
                     re.IGNORECASE),
-                substring)
+                cleaned_institution)
             if not is_common_identity_string:
-                cleaned_author_institution_tuple_list.append((author_name, cleaned_institution))
-    return cleaned_author_institution_tuple_list
+                cleaned_author_paper_institution_tuple_list.append((author_name, citing_paper_title, cited_paper_title, cleaned_institution))
+    return cleaned_author_paper_institution_tuple_list
 
-def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
+def institution_text_to_geocode(author_paper_institution_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
     '''
     Step 4: Convert institutions in plain text to Geocode.
     '''
@@ -113,15 +114,42 @@ def institution_text_to_geocode(author_institution_tuple_list: List[Tuple[str]],
     # we are explicitly asked not to submit bulk requests on multiple threads.
     # Therefore, we will keep it to a loop instead of multiprocessing.
     geolocator = Nominatim(user_agent='citation_mapper')
-    for author_institution_tuple in tqdm(author_institution_tuple_list,
-                                         desc='Finding geographic coordinates from %d citing institutions' % len(author_institution_tuple_list),
-                                         total=len(author_institution_tuple_list)):
+
+    # Find unique institutions and record their corresponding entries.
+    institution_map = {}
+    for entry_idx, (_, _, _, institution_name) in enumerate(author_paper_institution_tuple_list):
+        if institution_name not in institution_map.keys():
+            institution_map[institution_name] = [entry_idx]
+        else:
+            institution_map[institution_name].append(entry_idx)
+
+    for institution_name in tqdm(institution_map,
+                                 desc='Finding geographic coordinates from %d unique citing institutions in %d entries' % (
+                                     len(institution_map), len(author_paper_institution_tuple_list)),
+                                 total=len(institution_map)):
         for _ in range(max_attempts):
             try:
-                author_name, institution_name = author_institution_tuple
                 geo_location = geolocator.geocode(institution_name)
                 if geo_location:
-                    coordinates.append((geo_location.latitude, geo_location.longitude, author_name, institution_name))
+                    # Get the full location metadata that includes county, city, state, country, etc.
+                    location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude))
+                    address = location_metadata.raw['address']
+                    county, city, state, country = None, None, None, None
+                    if 'county' in address:
+                        county = address['county']
+                    if 'city' in address:
+                        city = address['city']
+                    if 'state' in address:
+                        state = address['state']
+                    if 'country' in address:
+                        country = address['country']
+
+                    corresponding_entries = institution_map[institution_name]
+                    for entry_idx in corresponding_entries:
+                        author_name, citing_paper_title, cited_paper_title, institution_name = author_paper_institution_tuple_list[entry_idx]
+                        coordinates.append((author_name, citing_paper_title, cited_paper_title, institution_name,
+                                            geo_location.latitude, geo_location.longitude,
+                                            county, city, state, country))
             except:
                 continue
     coordinates = [item for item in coordinates if item is not None]  # Filter out empty coordinates.
@@ -137,28 +165,46 @@ def create_map(coordinates: List[Tuple[str]], pin_colorful: bool = True):
                   'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
                   'darkpurple', 'pink', 'lightblue', 'lightgreen',
                   'gray', 'black', 'lightgray']
-        for lat, lon, author_name, location in coordinates:
+        for author_name, _, _, institution_name, lat, lon, _, _, _, _ in coordinates:
             color = random.choice(colors)
-            folium.Marker([lat, lon], popup='%s (%s)' % (location, author_name), icon=folium.Icon(color=color)).add_to(citation_map)
+            folium.Marker([lat, lon], popup='%s (%s)' % (institution_name, author_name),
+                          icon=folium.Icon(color=color)).add_to(citation_map)
     else:
-        for lat, lon, author_name, location in coordinates:
-            folium.Marker([lat, lon], popup='%s (%s)' % (location, author_name)).add_to(citation_map)
+        for author_name, _, _, institution_name, lat, lon, _, _, _, _ in coordinates:
+            folium.Marker([lat, lon], popup='%s (%s)' % (institution_name, author_name)).add_to(citation_map)
     return citation_map
+
+def export_csv(coordinates: List[Tuple[str]], csv_output_path: str) -> None:
+    '''
+    Step 6: Export csv file recording citing authors.
+    '''
+
+    citation_df = pd.DataFrame(coordinates, columns=['citing author name', 'citing paper title', 'cited paper title',
+                                                     'affiliated institution', 'latitude', 'longitude',
+                                                     'county', 'city', 'state', 'country'])
+
+    citation_df.to_csv(csv_output_path)
+    return
 
 def __fill_publication_metadata(pub):
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
     return scholarly.fill(pub)
 
-def __citing_author_ids_from_publication(cites_id: str):
+def __citing_authors_and_papers_from_publication(cites_id_and_cited_paper: Tuple[str, str]):
+    cites_id, cited_paper_title = cites_id_and_cited_paper
     citing_paper_search_url = 'https://scholar.google.com/scholar?hl=en&cites=' + cites_id
-    citing_author_ids = get_author_ids(citing_paper_search_url)
-    return citing_author_ids
+    citing_authors_and_citing_papers = get_citing_author_ids_and_citing_papers(citing_paper_search_url)
+    citing_author_paper_info = []
+    for citing_author_id, citing_paper_title in citing_authors_and_citing_papers:
+        citing_author_paper_info.append((citing_author_id, citing_paper_title, cited_paper_title))
+    return citing_author_paper_info
 
-def __institutions_from_authors(author_id: str):
+def __institutions_from_authors(citing_author_paper_info: str):
+    citing_author_id, citing_paper_title, cited_paper_title = citing_author_paper_info
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
-    citing_author = scholarly.search_author_id(author_id)
+    citing_author = scholarly.search_author_id(citing_author_id)
     if 'affiliation' in citing_author:
-        return (citing_author['name'], citing_author['affiliation'])
+        return (citing_author['name'], citing_paper_title, cited_paper_title, citing_author['affiliation'])
     return []
 
 def __country_aware_comma_split(string_list: List[str]) -> List[str]:
@@ -192,6 +238,7 @@ def __iscountry(string: str) -> bool:
 
 def generate_citation_map(scholar_id: str,
                           output_path: str = 'citation_map.html',
+                          csv_output_path: str = 'citation_info.csv',
                           num_processes: int = 16,
                           use_proxy: bool = False,
                           pin_colorful: bool = True,
@@ -206,6 +253,9 @@ def generate_citation_map(scholar_id: str,
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
+    csv_output_path: str
+        (default is 'citation_info.csv')
+        The path to the output csv file.
     num_processes: int
         (default is 16)
         Number of processes for parallel processing.
@@ -231,39 +281,44 @@ def generate_citation_map(scholar_id: str,
     author_profile = fetch_google_scholar_profile(scholar_id)
     print('\nAuthor profile found, with %d publications.\n' % len(author_profile['publications']))
 
-    author_institution_tuple_list = find_all_citing_institutions(author_profile['publications'],
-                                                                 num_processes=num_processes)
-    print('\nA total of %d citing institutions recorded.\n' % len(author_institution_tuple_list))
+    author_paper_institution_tuple_list = find_all_citing_institutions(author_profile['publications'],
+                                                                       num_processes=num_processes)
+    print('\nA total of %d citing institutions recorded.\n' % len(author_paper_institution_tuple_list))
 
     # Take unique tuples.
-    author_institution_tuple_list = list(set(author_institution_tuple_list))
+    author_paper_institution_tuple_list = list(set(author_paper_institution_tuple_list))
 
     if print_citing_institutions:
         print('\nList of all citing authors and institutions before cleaning:\n')
-        for item in sorted((author_institution_tuple_list)):
-            print(item)
+        for author, _, _, institution in sorted(author_paper_institution_tuple_list):
+            print('Author: %s, Institution: %s.' % (author, institution))
 
-    cleaned_author_institution_tuple_list = clean_institution_names(author_institution_tuple_list)
+    cleaned_author_paper_institution_tuple_list = clean_institution_names(author_paper_institution_tuple_list)
 
     # Take unique tuples.
-    cleaned_author_institution_tuple_list = list(set(cleaned_author_institution_tuple_list))
+    cleaned_author_paper_institution_tuple_list = list(set(cleaned_author_paper_institution_tuple_list))
 
     if print_citing_institutions:
         print('\nList of all citing authors and institutions after cleaning:\n')
-        for item in sorted(cleaned_author_institution_tuple_list):
-            print(item)
+        for author, _, _, institution in sorted(cleaned_author_paper_institution_tuple_list):
+            print('Author: %s, Institution: %s.' % (author, institution))
 
-    coordinates = institution_text_to_geocode(author_institution_tuple_list + cleaned_author_institution_tuple_list)
+    coordinates = institution_text_to_geocode(author_paper_institution_tuple_list + cleaned_author_paper_institution_tuple_list)
+    # Take unique tuples.
+    coordinates = list(set(coordinates))
     print('\nConverted the institutions to %d Geocodes.' % len(coordinates))
 
     citation_map = create_map(coordinates, pin_colorful=pin_colorful)
     citation_map.save(output_path)
-    print('\nMap created and saved at %s.' % output_path)
+    print('\nMap created and saved at %s.\n' % output_path)
+
+    export_csv(coordinates, csv_output_path)
+    print('\nCitation information exported to %s.' % csv_output_path)
     return
 
 
 if __name__ == '__main__':
     # Replace this with your Google Scholar ID.
     scholar_id = '3rDjnykAAAAJ'
-    generate_citation_map(scholar_id, output_path='citation_map.html',
+    generate_citation_map(scholar_id, output_path='citation_map.html', csv_output_path='citation_info.csv',
                           num_processes=16, use_proxy=False, pin_colorful=True, print_citing_institutions=True)

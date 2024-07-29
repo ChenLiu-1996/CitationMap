@@ -29,6 +29,8 @@ You will be given an HTML file as the output of the script.
 
 If you open it on a browser, you will see your own version of the following citation world map.
 
+Besides, there will be a csv file recording citation information.
+
 <img src = "assets/citation_world_map.png" width=800>
 
 
@@ -62,6 +64,9 @@ If you open it on a browser, you will see your own version of the following cita
     output_path: str
         (default is 'citation_map.html')
         The path to the output HTML file.
+    csv_output_path: str
+        (default is 'citation_info.csv')
+        The path to the output csv file.
     num_processes: int
         (default is 16)
         Number of processes for parallel processing.
@@ -103,6 +108,13 @@ If you open it on a browser, you will see your own version of the following cita
     - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
 
 ## Changelog
+
+<details>
+<summary>Version 3.11</summary>
+<br>
+
+**Additional output csv that records citation information.**
+</details>
 
 <details>
 <summary>Version 3.10</summary>
@@ -149,7 +161,7 @@ I tried to use multiprocessing, but unfortunately the excessive visits get me bl
 </details>
 
 ## Dependencies
-Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`) are already taken care of when you install via pip.
+Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`, `requests`, `bs4`, `pycountry`, `pandas`) are already taken care of when you install via pip.
 
 ## Acknowledgements
 This script was written under the assistance of ChatGPT-4o, but of course after intense debugging.
