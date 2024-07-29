@@ -77,8 +77,8 @@ If you open it on a browser, you will see your own version of the following cita
     - Your Google Scholar profile is not up-to-date.
     - Some papers citing you are not indexed by Google Scholar.
     - Some authors citing you do not have Google Scholar profile.
-    - Some authors citing you do not self-report their affiliations.
-2. `geopy.geocoders` is used to convert the citing authors' self-reported affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
+    - Some authors citing you do not report their affiliations.
+2. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
     - Underestimation if correct affiliations are not found by `geopy.geocoders`.
     - Underestimation if we experience communication error with `geopy.geocoders`.
     - Overestimation if non-affiliation terms are incorrectly identified as locations by `geopy.geocoders`.
@@ -96,11 +96,13 @@ If you open it on a browser, you will see your own version of the following cita
 ## Changelog
 
 <details>
-<summary>Version 3.8</summary>
+<summary>Version 3.10</summary>
 <br>
-In 3.7, I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
+In 3.10, I slightly improved the logic for affiliation extraction.
 
 In 3.8, I removed multiprocessing for `geopy.geocoders` as per their official documentation. Also I cleaned up some unnecessary `scholarly` calls which further helps us not get blacklisted by Google Scholar.
+
+In 3.7, I updated the logic for webscraping and avoided using `scholarly.citeby()` which is the biggest trigger of blacklisting from Google Scholar.
 
 **Now we should be able to handle users with more citations than before. I tested on a profile with 1000 citations without running into any issue.**
 </details>
@@ -108,7 +110,7 @@ In 3.8, I removed multiprocessing for `geopy.geocoders` as per their official do
 <details>
 <summary>Version 3.0</summary>
 <br>
-I realized a problem with how I used `geopy.geocoders`. A majority of the authors' self-entered affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
+I realized a problem with how I used `geopy.geocoders`. A majority of the authors' affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
 
 For example, we would want the substring "Yale University" from the string "Assistant Professor at Yale University".
 
