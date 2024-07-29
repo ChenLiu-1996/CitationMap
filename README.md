@@ -1,8 +1,8 @@
 # Google Scholar Citation World Map
 
 [![Latest PyPI version](https://img.shields.io/pypi/v/citation-map.svg)](https://pypi.org/project/citation-map/)
-[![PyPI download month](https://img.shields.io/pypi/dm/citation-map.svg)](https://pypi.python.org/pypi/citation-map/)
-[![PyPI download day](https://img.shields.io/pypi/dd/citation-map.svg)](https://pypi.python.org/pypi/citation-map/)
+[![PyPI download month](https://img.shields.io/pypi/dm/citation-map.svg)](https://pypistats.org/packages/citation-map)
+[![PyPI download day](https://img.shields.io/pypi/dd/citation-map.svg)](https://pypistats.org/packages/citation-map)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 
 
@@ -85,7 +85,7 @@ If you open it on a browser, you will see your own version of the following cita
     - Some papers citing you are not indexed by Google Scholar.
     - Some authors citing you do not have Google Scholar profiles.
     - Some authors citing you do not report their affiliations.
-2. Webscraping is performed, and CAPTCHA or robot check can often get us, especially if the crawling frequency is high and/or crawling volume is big. This is more often seen in highly cited users. Unless you are blocked by Google Scholar, at worst you will end up with missing several citing authors, which is not likely a huge deal for highly cited users anyways.
+2. Webscraping is performed, and CAPTCHA or robot check can often get us, especially if we crawl frequently. This is more often seen in highly cited users. Unless you are blocked by Google Scholar, at worst you will end up with missing several citing authors, which is not likely a huge deal for highly cited users anyways.
 3. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
     - Underestimation if the affiliations are not found by `geopy.geocoders`.
     - Underestimation if we experience communication error with `geopy.geocoders`.
@@ -100,6 +100,7 @@ If you open it on a browser, you will see your own version of the following cita
     - From my experience, both are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
     - In case this does not help, you can try to change IP adress and reduce the number of processes (e.g., setting `num_processes=1`).
+    - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
 
 ## Changelog
 
