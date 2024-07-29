@@ -17,6 +17,8 @@ It is easy to install (`pip install citation-map`, available on [PyPI](https://p
 
 **You don't need to fork this repo unless you want to make custom changes.**
 
+[Jul 28, 2024] Version 3.10 released. It even worked on a professor **with 10,000 citations**, which was impossible in most earlier versions.
+
 ## Expected Outcome
 You will be given an HTML file as the output of the script.
 
@@ -78,7 +80,8 @@ If you open it on a browser, you will see your own version of the following cita
     - Some papers citing you are not indexed by Google Scholar.
     - Some authors citing you do not have Google Scholar profiles.
     - Some authors citing you do not report their affiliations.
-2. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
+2. Webscraping is performed, and CAPTCHA or robot check can often get us, especially if the crawling frequency is high and/or crawling volume is big. This is more often seen in highly cited users. Unless you are blocked by Google Scholar, at worst you will end up with missing several citing authors, which is not likely a huge deal for highly cited users anyways.
+3. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
     - Underestimation if the affiliations are not found by `geopy.geocoders`.
     - Underestimation if we experience communication error with `geopy.geocoders`.
     - Overestimation if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`.
