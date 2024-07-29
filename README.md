@@ -35,6 +35,7 @@ Besides, there will be a csv file recording citation information.
 
 
 ## Usage
+0. If you are new to Python, you probably want to start with a distribution of Python that also helps with environment management (such as [anaconda](https://www.youtube.com/watch?v=MUZtVEDKXsk&t=242s)). Once you have set up your environment (for example, when you reach the stage of `conda activate env39` in this [tutorial](https://www.youtube.com/watch?v=MUZtVEDKXsk&t=242s)), you can move on to the next step.
 1. Install the package.
     ```
     pip install citation-map --upgrade
