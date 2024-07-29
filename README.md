@@ -12,6 +12,8 @@ Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4
 
 ## News
 [Jul 28, 2024] Version 3.10 released >>> Tested on a professor's profile **with 10,000 citations**!
+[Jul 27, 2024] Version 2.0 released >>> 10x speedup with multiprocessing.
+[Jul 26, 2024] Version 1.0 released >>> Works for my profile with 100 citations.
 
 ## Purpose
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
