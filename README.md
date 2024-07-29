@@ -13,7 +13,7 @@ Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4
 ## News
 [Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
 
-[Jul 27, 2024] Version 2.0 released >>> 10x speedup with multiprocessing.
+[Jul 27, 2024] Version 2.0 released >>> 10x speedup with multiprocessing (1 hour to 5 minutes).
 
 [Jul 26, 2024] Version 1.0 released >>> First working version for my profile with 100 citations.
 
