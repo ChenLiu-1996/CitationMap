@@ -76,12 +76,12 @@ If you open it on a browser, you will see your own version of the following cita
 1. This tool is purely based on Google Scholar. As a result, you are expected to have underestimations due to reasons such as:
     - Your Google Scholar profile is not up-to-date.
     - Some papers citing you are not indexed by Google Scholar.
-    - Some authors citing you do not have Google Scholar profile.
+    - Some authors citing you do not have Google Scholar profiles.
     - Some authors citing you do not report their affiliations.
 2. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
-    - Underestimation if correct affiliations are not found by `geopy.geocoders`.
+    - Underestimation if the affiliations are not found by `geopy.geocoders`.
     - Underestimation if we experience communication error with `geopy.geocoders`.
-    - Overestimation if non-affiliation terms are incorrectly identified as locations by `geopy.geocoders`.
+    - Overestimation if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`.
 
     **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
 
