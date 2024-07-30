@@ -16,7 +16,9 @@
 Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4Science.
 
 ## News
-**[Asking for advice]** This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a GitHub issue or a pull request.
+**[Asking for advice]**
+1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a GitHub issue or a pull request.
+2. Locations are based on Authors' affiliations on Google Scholar profiles. If we want to do it better, this involves parsing natural language, extracting relevant information, named entity recognition, etc. If you have some good idea to better process the affiliation string, I would highly appreciate a GitHub issue or a pull request. However, for the benefit of the users, currently I am not considering any paid service or tools such as GPT API.
 
 [Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
 
