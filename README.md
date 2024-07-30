@@ -30,7 +30,7 @@ If you open it on a browser, you will see your own version of the following cita
 
 Besides, there will be a csv file recording citation information (citing author, citing paper, cited paper, institution, detailed location).
 
-**Disclaimer:** It is unreasonable to expect this tool to reach 100% precision and 0% recall. If you care a lot about ensuring all citing authors' affiliations are included and accurately marked, you could try manually annotating on [Google My Maps](https://www.google.com/maps/d/) instead. This tool is meant to help people who cannot tolerat the repetitive process.
+**Disclaimer:** It is unreasonable to expect this tool to reach 100% precision and recall. If you care a lot about ensuring all citing authors' affiliations are included and accurately marked, you could try manually annotating on [Google My Maps](https://www.google.com/maps/d/) instead. This tool is meant to help people who cannot tolerat the repetitive process.
 
 <img src = "assets/citation_world_map.png" width=800>
 
