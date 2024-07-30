@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setup(
     name='citation-map',
-    version='3.12',
+    version='3.13',
     license='CC BY-NC-SA',
     author='Chen Liu',
     author_email='chen.liu.cl2482@yale.edu',
