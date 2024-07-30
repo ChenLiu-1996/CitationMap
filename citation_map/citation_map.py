@@ -1,3 +1,5 @@
+# Copyright (c) 2024 Chen Liu
+# All rights reserved.
 import folium
 import itertools
 import pandas as pd

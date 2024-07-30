@@ -6,7 +6,7 @@ with open('README.md') as f:
 setup(
     name='citation-map',
     version='3.12',
-    license='Apache 2.0',
+    license='CC BY-NC-SA',
     author='Chen Liu',
     author_email='chen.liu.cl2482@yale.edu',
     packages={'citation_map'},
@@ -20,7 +20,7 @@ setup(
     classifiers=[
     'Development Status :: 3 - Alpha',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers
-    'License :: OSI Approved :: Apache Software License',   # Again, pick a license
+    'License :: Other/Proprietary License',   # Again, pick a license
     'Programming Language :: Python :: 3',      #Specify which pyhton versions that you want to support
     ],
 )

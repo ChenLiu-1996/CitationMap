@@ -1,3 +1,5 @@
+# Copyright (c) 2024 Chen Liu
+# All rights reserved.
 import random
 import requests
 import time
