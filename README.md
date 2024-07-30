@@ -5,7 +5,6 @@
 [![PyPI download day](https://img.shields.io/pypi/dd/citation-map.svg)](https://pypistats.org/packages/citation-map)
 [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
 
-
 [Chen Liu](https://www.chenliu1996.com/), CS PhD Candidate at Yale University.
 
 Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4Science.
@@ -109,6 +108,7 @@ Besides, there will be a csv file recording citation information.
     - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
 
 ## Changelog
+[![Star History Chart](https://api.star-history.com/svg?repos=ChenLiu-1996/CitationMap)](https://star-history.com/#ChenLiu-1996/CitationMap&Date)
 
 <details>
 <summary>Version 3.11</summary>
