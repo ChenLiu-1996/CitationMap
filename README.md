@@ -54,6 +54,7 @@ Besides, there will be a csv file recording citation information (citing author,
 
     - Open your Google Scholar profile. The URL should take the form of `https://scholar.google.com/citations?user=GOOGLE_SCHOLAR_ID`. In this case, your Google Scholar ID is just the string `GOOGLE_SCHOLAR_ID`.
     - Please kindly ignore configuration strings such as `&hl=en` (host language is English) or `&sortby=pubdate` (sort the works by date of publication).
+    - **NOTE**: If you have publications/patents that you _manually added into the Google Scholar page_, you might want to temporarily delete them while you run this tool. They might cause errors due to incompatibility.
 
 3. In an empty Python script, run the following. More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
 
