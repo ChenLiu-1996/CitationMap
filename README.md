@@ -113,12 +113,30 @@ Besides, there will be a csv file recording citation information (citing author,
 
 
 ## Debug
+
 1. `MaxTriesExceededException` or (`[WARNING!] Blocked by CAPTCHA or robot check` for all entries).
 
     - From my experience, both are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
     - In case this does not help, you can try to change IP adress and reduce the number of processes (e.g., setting `num_processes=1`).
     - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
+
+2. `An attempt has been made to start a new process before the current process has finished its bootstrapping phase.`
+
+    - In this case, you might want to write your script slightly differently. See [Issue](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672) solved by [dk-liang](https://github.com/dk-liang).
+      ```
+      from citation_map import generate_citation_map
+    
+      def main():
+          # This is my Google Scholar ID. Replace this with your ID.
+          scholar_id = '3rDjnykAAAAJ'
+          generate_citation_map(scholar_id)
+    
+      if __name__ == '__main__':
+          import multiprocessing
+          multiprocessing.freeze_support()
+          main()
+      ``` 
 
 ## Changelog
 ## Star History
