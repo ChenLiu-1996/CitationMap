@@ -58,8 +58,8 @@ Besides, there will be a csv file recording citation information (citing author,
 
 3. In an empty Python script, run the following.
 
-    - **NOTE** 1: Please **DO NOT** name your script `citation_map.py` which would cause circular import as this package itself shares the same name. Call it something else: e.g., `run_citation_map.py`, `run.py`, etc. See [Issue #2](https://github.com/ChenLiu-1996/CitationMap/issues/2).
-    - **NOTE** 2: Protecting with `if __name__ == '__main__'` seems necessary to avoid multiprocessing problems, and it is a good practice anyways.
+    - **NOTE 1**: Please **DO NOT** name your script `citation_map.py` which would cause circular import as this package itself shares the same name. Call it something else: e.g., `run_citation_map.py`, `run.py`, etc. See [Issue #2](https://github.com/ChenLiu-1996/CitationMap/issues/2).
+    - **NOTE 2**: Protecting with `if __name__ == '__main__'` seems necessary to avoid multiprocessing problems, and it is a good practice anyways.
     ```
     from citation_map import generate_citation_map
 
