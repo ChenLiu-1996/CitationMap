@@ -111,14 +111,14 @@ Besides, there will be a csv file recording citation information.
 [![Star History Chart](https://api.star-history.com/svg?repos=ChenLiu-1996/CitationMap)](https://star-history.com/#ChenLiu-1996/CitationMap&Date)
 
 <details>
-<summary>Version 3.11</summary>
+<summary>Version 3.11 (Jul 28, 2024)</summary>
 <br>
 
 **Additional output csv that records citation information.**
 </details>
 
 <details>
-<summary>Version 3.10</summary>
+<summary>Version 3.10 (Jul 28, 2024)</summary>
 <br>
 In 3.10, I slightly improved the logic for affiliation extraction.
 
@@ -130,7 +130,7 @@ In 3.7, I updated the logic for webscraping and avoided using `scholarly.citeby(
 </details>
 
 <details>
-<summary>Version 3.0</summary>
+<summary>Version 3.0 (Jul 28, 2024)</summary>
 <br>
 I realized a problem with how I used `geopy.geocoders`. A majority of the authors' affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
 
@@ -142,7 +142,7 @@ I applied a simple fix with some rule-based natural language processing. This he
 </details>
 
 <details>
-<summary>Version 2.0</summary>
+<summary>Version 2.0 (Jul 27, 2024)</summary>
 <br>
 I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
 
@@ -152,7 +152,7 @@ With that said, please be careful and do not run this tool frequently. I can eas
 </details>
 
 <details>
-<summary>Version 1.0</summary>
+<summary>Version 1.0 (Jul 26, 2024)</summary>
 <br>
 Very basic functionality.
 
