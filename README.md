@@ -127,20 +127,20 @@ Besides, there will be a csv file recording citation information (citing author,
 
 2. `An attempt has been made to start a new process before the current process has finished its bootstrapping phase.`
 
-    - In this case, you might want to write your script slightly differently. See [Issue](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672) solved by [dk-liang](https://github.com/dk-liang).
+    - In this case, you might want to write your script slightly differently. See [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672) solved by [dk-liang](https://github.com/dk-liang).
       ```
       from citation_map import generate_citation_map
-    
+
       def main():
           # This is my Google Scholar ID. Replace this with your ID.
           scholar_id = '3rDjnykAAAAJ'
           generate_citation_map(scholar_id)
-    
+
       if __name__ == '__main__':
           import multiprocessing
           multiprocessing.freeze_support()
           main()
-      ``` 
+      ```
 
 ## Changelog
 [![Star History Chart](https://api.star-history.com/svg?repos=ChenLiu-1996/CitationMap&type=Date)](https://star-history.com/#ChenLiu-1996/CitationMap&Date)

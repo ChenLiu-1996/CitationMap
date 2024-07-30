@@ -8,5 +8,5 @@ def main():
                           num_processes=16, use_proxy=False, pin_colorful=True, print_citing_institutions=True)
 
 if __name__ == '__main__':
-    multiprocessing.freeze_support()  # Not always necessary, but good to have.
+    multiprocessing.freeze_support()  # Not always necessary, but it helps some users.
     main()
