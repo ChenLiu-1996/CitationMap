@@ -62,14 +62,13 @@ Besides, there will be a csv file recording citation information (citing author,
     ```
     from citation_map import generate_citation_map
 
-    # This is my Google Scholar ID. Replace this with your ID.
-    scholar_id = '3rDjnykAAAAJ'
-    generate_citation_map(scholar_id)
+    if __name__ == '__main__':
+        # This is my Google Scholar ID. Replace this with your ID.
+        scholar_id = '3rDjnykAAAAJ'
+        generate_citation_map(scholar_id)
     ```
 
     More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
-
-    Also, [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py) includes mulitprocessing freeze protection, which is helpful to some users (credit to [dk-liang](https://github.com/dk-liang) in [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672)).
 
     You can take a look at the input arguments (listed below) of the function `generate_citation_map` in case you need those functionalities.
 
@@ -127,7 +126,8 @@ Besides, there will be a csv file recording citation information (citing author,
 
 2. `An attempt has been made to start a new process before the current process has finished its bootstrapping phase.`
 
-    - In this case, you might want to write your script slightly differently. See [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672) solved by [dk-liang](https://github.com/dk-liang).
+    - I believe this is because you did not protect your main function with `if __name__ == '__main__'`. You can take a look at the recommended script again.
+    - If this still does not help, you might want to write your script slightly differently. Credit to [dk-liang](https://github.com/dk-liang) in [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672).
       ```
       from citation_map import generate_citation_map
 
