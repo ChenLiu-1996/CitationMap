@@ -139,7 +139,6 @@ Besides, there will be a csv file recording citation information (citing author,
       ``` 
 
 ## Changelog
-## Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=ChenLiu-1996/CitationMap&type=Date)](https://star-history.com/#ChenLiu-1996/CitationMap&Date)
 
 <details>
