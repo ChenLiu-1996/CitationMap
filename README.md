@@ -59,6 +59,7 @@ Besides, there will be a csv file recording citation information (citing author,
     - Please kindly ignore configuration strings such as `&hl=en` (host language is English) or `&sortby=pubdate` (sort the works by date of publication).
 
 3. In an empty Python script, run the following. More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
+
     **NOTE**: Please **DO NOT** name your script `citation_map.py` which would cause circular import as this package itself shares the same name. Call it something else: e.g., `run_citation_map.py`, `run.py`, etc. See [Issue](https://github.com/ChenLiu-1996/CitationMap/issues/2).
     ```
     from citation_map import generate_citation_map
