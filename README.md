@@ -130,7 +130,7 @@ In 3.7, I updated the logic for webscraping and avoided using `scholarly.citeby(
 </details>
 
 <details>
-<summary>Version 3.0 (Jul 28, 2024)</summary>
+<summary>Version 3.0 (Jul 27, 2024)</summary>
 <br>
 I realized a problem with how I used `geopy.geocoders`. A majority of the authors' affiliations include details that are irrelevant to the affiliation itself. Therefore, they are not successfully found in the system and hence are not converted to geographic coordinates on the world map.
 
