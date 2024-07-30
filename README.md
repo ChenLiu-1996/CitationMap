@@ -56,9 +56,9 @@ Besides, there will be a csv file recording citation information (citing author,
     - Please kindly ignore configuration strings such as `&hl=en` (host language is English) or `&sortby=pubdate` (sort the works by date of publication).
     - **NOTE**: If you have publications/patents that you **_manually added into the Google Scholar page_**, you might want to temporarily delete them while you run this tool. They might cause errors due to incompatibility.
 
-3. In an empty Python script, run the following. More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
+3. In an empty Python script, run the following.
 
-    **NOTE**: Please **DO NOT** name your script `citation_map.py` which would cause circular import as this package itself shares the same name. Call it something else: e.g., `run_citation_map.py`, `run.py`, etc. See [Issue](https://github.com/ChenLiu-1996/CitationMap/issues/2).
+    **NOTE**: Please **DO NOT** name your script `citation_map.py` which would cause circular import as this package itself shares the same name. Call it something else: e.g., `run_citation_map.py`, `run.py`, etc. See [Issue #2](https://github.com/ChenLiu-1996/CitationMap/issues/2).
     ```
     from citation_map import generate_citation_map
 
@@ -66,6 +66,10 @@ Besides, there will be a csv file recording citation information (citing author,
     scholar_id = '3rDjnykAAAAJ'
     generate_citation_map(scholar_id)
     ```
+
+    More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
+
+    Also, [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py) includes mulitprocessing freeze protection, which is helpful to some users (credit to [dk-liang](https://github.com/dk-liang) in [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672)).
 
     You can take a look at the input arguments (listed below) of the function `generate_citation_map` in case you need those functionalities.
 
