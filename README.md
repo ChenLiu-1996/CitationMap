@@ -19,7 +19,7 @@ Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4
 ## Purpose
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
 
-It is easy to install (`pip install citation-map`, available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [Usage](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#usage) section).
+It is easy to install (`pip install citation-map`, available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user_guide)).
 
 **You don't need to fork this repo unless you want to make custom changes.**
 
@@ -33,7 +33,7 @@ Besides, there will be a csv file recording citation information.
 <img src = "assets/citation_world_map.png" width=800>
 
 
-## Usage
+## User Guide
 0. If you are new to Python, you probably want to start with a distribution of Python that also helps with environment management (such as [anaconda](https://www.anaconda.com/)). Once you have set up your environment (for example, when you reach the stage of `conda activate env39` in [this tutorial](https://www.youtube.com/watch?v=MUZtVEDKXsk&t=242s)), you can move on to the next step.
 1. Install this tool by running the following line in your conda-accessible command line.
     ```
