@@ -110,6 +110,7 @@ Besides, there will be a csv file recording citation information (citing author,
     - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
 
 ## Changelog
+## Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=ChenLiu-1996/CitationMap&type=Date)](https://star-history.com/#ChenLiu-1996/CitationMap&Date)
 
 <details>
