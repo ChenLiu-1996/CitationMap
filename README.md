@@ -120,9 +120,9 @@ Besides, there will be a csv file recording citation information (citing author,
 
 ## Debug
 
-1. `MaxTriesExceededException` or (`[WARNING!] Blocked by CAPTCHA or robot check` for all entries).
+1. `MaxTriesExceededException` or `Exception: Failed to fetch the Google Scholar page` or (`[WARNING!] Blocked by CAPTCHA or robot check` for all entries).
 
-    - From my experience, both are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
+    - From my experience, these are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
     - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
     - In case this does not help, you can try to change IP adress and reduce the number of processes (e.g., setting `num_processes=1`).
     - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
