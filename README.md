@@ -41,13 +41,13 @@ You will be given an **HTML file** as the output of the script.
 
 If you open it on a browser, you will see your own version of the following citation world map.
 
+<img src = "assets/citation_world_map.png" width=800>
+
 Besides, there will be a **CSV file** recording citation information (citing author, citing paper, cited paper, affiliation, detailed location).
 
 **Disclaimer:** It is reasonable for this tool to make some minor mistakes: missing a few citing authors, dropping a couple of pins in wrong locations, etc. If you care a lot about ensuring all citing authors' affiliations are included and accurately marked, you could try manually annotating on [Google My Maps](https://www.google.com/maps/d/) instead. This tool is meant to help people who cannot tolerate this painful process, especailly when they have a decent number of citations.
 
 **NOTE:** **Now you can trade off between affiliation precision and recall** with the `affiliation_conservative` option. If set to True, we will use the Google Scholar verified official organization name from the citing authors. This is a very conservative approach, since (1) the author needs to self-report it in the affiliation panel, (2) the author needs to verify with the matching email address, and (3) the organization needs to be recorded by Google Scholar. For example, Meta (the company) is not in the list. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
-
-<img src = "assets/citation_world_map.png" width=800>
 
 
 ## User Guide
@@ -95,13 +95,13 @@ Besides, there will be a **CSV file** recording citation information (citing aut
         The path to the output csv file.
     cache_folder: str
         (default is 'cache')
-        The folder to save intermediate results,
-        after finding (author, paper) but before finding the affiliations.
+        The folder to save intermediate results, after finding (author, paper) but before finding the affiliations.
         This is because the user might want to try the aggressive vs. conservative approach.
+        Set to None if you do not want caching.
     affiliation_conservative: bool
         (default is False)
-        If true, we will use a more conservative approach for identifying affiliations.
-        If false, we will use a more aggressive approach for identifying affiliations.
+        If true, we will use a more conservative approach to identify affiliations.
+        If false, we will use a more aggressive approach to identify affiliations.
     num_processes: int
         (default is 16)
         Number of processes for parallel processing.

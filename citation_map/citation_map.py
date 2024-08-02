@@ -351,13 +351,13 @@ def generate_citation_map(scholar_id: str,
         The path to the output csv file.
     cache_folder: str
         (default is 'cache')
-        The folder to save intermediate results,
-        after finding (author, paper) but before finding the affiliations.
+        The folder to save intermediate results, after finding (author, paper) but before finding the affiliations.
         This is because the user might want to try the aggressive vs. conservative approach.
+        Set to None if you do not want caching.
     affiliation_conservative: bool
         (default is False)
-        If true, we will use a more conservative approach for identifying affiliations.
-        If false, we will use a more aggressive approach for identifying affiliations.
+        If true, we will use a more conservative approach to identify affiliations.
+        If false, we will use a more aggressive approach to identify affiliations.
     num_processes: int
         (default is 16)
         Number of processes for parallel processing.
@@ -380,28 +380,33 @@ def generate_citation_map(scholar_id: str,
         scholarly.use_proxy(pg)
         print('Using proxy.')
 
-    cache_path = os.path.join(cache_folder, scholar_id, 'all_citing_author_paper_tuple_list.pkl')
-    if not os.path.exists(cache_path):
-        print('No cache found for this author. Running from scratch.')
+    if cache_folder is not None:
+        cache_path = os.path.join(cache_folder, scholar_id, 'all_citing_author_paper_tuple_list.pkl')
+    else:
+        cache_path = None
+
+    if cache_path is None or not os.path.exists(cache_path):
+        print('No cache found for this author. Running from scratch.\n')
 
         # NOTE: Step 1. Fetch Google Scholar profile.
         author_profile = fetch_google_scholar_profile(scholar_id)
 
         # NOTE: Step 2. Find all citing authors.
-        print('\nAuthor profile found, with %d publications.\n' % len(author_profile['publications']))
+        print('Author profile found, with %d publications.\n' % len(author_profile['publications']))
         all_citing_author_paper_tuple_list = find_all_citing_authors(author_profile['publications'],
                                                                      num_processes=num_processes)
-        print('\nA total of %d citing authors recorded.\n' % len(all_citing_author_paper_tuple_list))
-        save_cache(all_citing_author_paper_tuple_list, cache_path)
-        print('Saved to cache: %s.' % cache_path)
+        print('A total of %d citing authors recorded.\n' % len(all_citing_author_paper_tuple_list))
+        if cache_path is not None and len(all_citing_author_paper_tuple_list) > 0:
+            save_cache(all_citing_author_paper_tuple_list, cache_path)
+        print('Saved to cache: %s.\n' % cache_path)
 
     else:
         print('Cache found. Loading author paper affiliation information from cache.\n')
 
         # NOTE: Step 1 & 2. Load all citing authors.
         all_citing_author_paper_tuple_list = load_cache(cache_path)
-        print('Loaded from cache: %s.' % cache_path)
-        print('\nA total of %d citing authors loaded.\n' % len(all_citing_author_paper_tuple_list))
+        print('Loaded from cache: %s.\n' % cache_path)
+        print('A total of %d citing authors loaded.\n' % len(all_citing_author_paper_tuple_list))
 
     # NOTE: Step 3. Find all citing affiliations.
     print('Identifying affiliations using the %s approach.' % ('conservative' if affiliation_conservative else 'aggressive'))
@@ -418,13 +423,13 @@ def generate_citation_map(scholar_id: str,
             print('Taking the conservative approach. Will not need to clean the affiliation names.')
             print('List of all citing authors and affiliations:\n')
         else:
-            print('\nTaking the aggressive approach. Cleaning the affiliation names.')
+            print('Taking the aggressive approach. Cleaning the affiliation names.')
             print('List of all citing authors and affiliations before cleaning:\n')
         __print_author_and_affiliation(author_paper_affiliation_tuple_list)
     if not affiliation_conservative:
         cleaned_author_paper_affiliation_tuple_list = clean_affiliation_names(author_paper_affiliation_tuple_list)
         if print_citing_affiliations:
-            print('\nList of all citing authors and affiliations after cleaning:\n')
+            print('List of all citing authors and affiliations after cleaning:\n')
             __print_author_and_affiliation(cleaned_author_paper_affiliation_tuple_list)
         # Use the merged set to maximize coverage.
         author_paper_affiliation_tuple_list += cleaned_author_paper_affiliation_tuple_list
