@@ -19,7 +19,9 @@ Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4
 **[Asking for advice]**
 1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a GitHub issue or a pull request.
 
-[Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`. If true, we will use **a very conservative approach for identifying affiliations** which lead to **very high precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
+[Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`.
+
+If set to True, we will use **a very conservative approach for identifying affiliations** which lead to **very high precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
 [Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
 
@@ -43,7 +45,7 @@ Besides, there will be a **CSV file** recording citation information (citing aut
 
 **Disclaimer:** It is reasonable for this tool to make some minor mistakes: missing a few citing authors, dropping a couple of pins in wrong locations, etc. If you care a lot about ensuring all citing authors' affiliations are included and accurately marked, you could try manually annotating on [Google My Maps](https://www.google.com/maps/d/) instead. This tool is meant to help people who cannot tolerate this painful process, especailly when they have a decent number of citations.
 
-**NOTE:** **Now you can trade off between affiliation precision and recall** by leveraging the `affiliation_conservative` option. If set to True, we will use the Google Scholar verified official organization name from the citing authors. This is a very conservative approach, since (1) the author needs to self-report it in the affiliation panel, (2) the author needs to verify with the matching email address, and (3) the organization needs to be recorded by Google Scholar. For example, Meta (the company) is not in the list.
+**NOTE:** **Now you can trade off between affiliation precision and recall** by leveraging the `affiliation_conservative` option. If set to True, we will use the Google Scholar verified official organization name from the citing authors. This is a very conservative approach, since (1) the author needs to self-report it in the affiliation panel, (2) the author needs to verify with the matching email address, and (3) the organization needs to be recorded by Google Scholar. For example, Meta (the company) is not in the list. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
 <img src = "assets/citation_world_map.png" width=800>
 
