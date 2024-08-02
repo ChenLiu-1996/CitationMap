@@ -76,6 +76,8 @@ Besides, there will be a **CSV file** recording citation information (citing aut
         generate_citation_map(scholar_id)
     ```
 
+    Note that in Version 4.0, we will cache the results before identifying affiliations. So if you want to rerun the same author from scratch, you need to delete the cache (default location is 'cache').
+
     More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
 
     You can take a look at the input arguments (listed below) of the function `generate_citation_map` in case you need those functionalities.
