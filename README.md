@@ -18,7 +18,8 @@ Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4
 ## News
 **[Asking for advice]**
 1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a GitHub issue or a pull request.
-2. Locations are based on Authors' affiliations on Google Scholar profiles. If we want to do it better, this involves parsing natural language, extracting relevant information, named entity recognition, etc. If you have some good idea to better process the affiliation string, I would highly appreciate a GitHub issue or a pull request. However, for the benefit of the users, currently I am not considering any paid service or tools such as GPT API.
+
+[Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`. If true, we will use **a very conservative approach for identifying affiliations** which lead to **very high precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
 [Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
 
@@ -34,13 +35,15 @@ It is easy to install (`pip install citation-map`, available on [PyPI](https://p
 **You don't need to fork this repo unless you want to make custom changes.**
 
 ## Expected Outcome
-You will be given an HTML file as the output of the script.
+You will be given an **HTML file** as the output of the script.
 
 If you open it on a browser, you will see your own version of the following citation world map.
 
-Besides, there will be a csv file recording citation information (citing author, citing paper, cited paper, institution, detailed location).
+Besides, there will be a **CSV file** recording citation information (citing author, citing paper, cited paper, affiliation, detailed location).
 
 **Disclaimer:** It is reasonable for this tool to make some minor mistakes: missing a few citing authors, dropping a couple of pins in wrong locations, etc. If you care a lot about ensuring all citing authors' affiliations are included and accurately marked, you could try manually annotating on [Google My Maps](https://www.google.com/maps/d/) instead. This tool is meant to help people who cannot tolerate this painful process, especailly when they have a decent number of citations.
+
+**NOTE:** **Now you can trade off between affiliation precision and recall** by leveraging the `affiliation_conservative` option. If set to True, we will use the Google Scholar verified official organization name from the citing authors. This is a very conservative approach, since (1) the author needs to self-report it in the affiliation panel, (2) the author needs to verify with the matching email address, and (3) the organization needs to be recorded by Google Scholar. For example, Meta (the company) is not in the list.
 
 <img src = "assets/citation_world_map.png" width=800>
 
@@ -86,6 +89,15 @@ Besides, there will be a csv file recording citation information (citing author,
     csv_output_path: str
         (default is 'citation_info.csv')
         The path to the output csv file.
+    cache_folder: str
+        (default is 'cache')
+        The folder to save intermediate results,
+        after finding (author, paper) but before finding the affiliations.
+        This is because the user might want to try the aggressive vs. conservative approach.
+    affiliation_conservative: bool
+        (default is False)
+        If true, we will use a more conservative approach for identifying affiliations.
+        If false, we will use a more aggressive approach for identifying affiliations.
     num_processes: int
         (default is 16)
         Number of processes for parallel processing.
@@ -97,9 +109,9 @@ Besides, there will be a csv file recording citation information (citing author,
         (default is True)
         If true, the location pins will have a variety of colors.
         Otherwise, it will only have one color.
-    print_citing_institutions: bool
+    print_citing_affiliations: bool
         (default is True)
-        If true, print the list of citing institutions (affiliations of citing authors).
+        If true, print the list of citing affiliations (affiliations of citing authors).
     ```
 
 ## Limitations
@@ -113,7 +125,7 @@ Besides, there will be a csv file recording citation information (citing author,
 3. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
     - Underestimation if the affiliations are not found by `geopy.geocoders`.
     - Underestimation if we experience communication error with `geopy.geocoders`.
-    - Overestimation if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`.
+    - Overestimation if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`. (Only relevant if `affiliation_conservative` is set to False.)
 
     **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
 
@@ -150,7 +162,7 @@ Besides, there will be a csv file recording citation information (citing author,
 <summary>Version 3.11 (Jul 28, 2024)</summary>
 <br>
 
-**Additional output csv that records citation information.**
+**Additional output CSV that records citation information.**
 </details>
 
 <details>

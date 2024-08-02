@@ -76,3 +76,28 @@ def get_citing_author_ids_and_citing_papers(paper_url: str) -> List[str]:
             break
 
     return citing_authors_and_citing_papers
+
+def get_organization_name(organization_id: str) -> str:
+    '''
+    Get the official name of the organization defined by the unique Google Scholar organization ID.
+    '''
+
+    headers = requests.utils.default_headers()
+    headers.update({
+        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
+    })
+
+    url = f'https://scholar.google.com/citations?view_op=view_org&org={organization_id}&hl=en'
+
+    time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f'When getting organization name, failed to fetch {url}: {response.text}.')
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    tag = soup.find('h2', {'class': 'gsc_authors_header'})
+    if not tag:
+        raise Exception(f'When getting organization name, failed to parse {url}.')
+    return tag.text.replace('Learn more', '').strip()
