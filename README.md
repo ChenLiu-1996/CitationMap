@@ -21,7 +21,7 @@ Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4
 
 [Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`.
 
-If set to True, we will use **a very conservative approach for identifying affiliations** which lead to **very high precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
+    If set to True, we will use **a very conservative approach for identifying affiliations** which lead to **very high precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
 [Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
 
