@@ -161,6 +161,17 @@ Besides, there will be a **CSV file** recording citation information (citing aut
 
 ## Changelog
 <details>
+<summary>Version 4.0 (Aug 2, 2024)</summary>
+<br>
+
+1. **Now you can trade off between precision and recall as we identify the affiliations.**
+2. Added caching before identifying the affiliations, since users might want to try both the conservative and aggressive approaches.
+3. Slight optimization in the affiliation to geocode stage by adding early breaking if successful.
+
+</details>
+
+
+<details>
 <summary>Version 3.11 (Jul 28, 2024)</summary>
 <br>
 
