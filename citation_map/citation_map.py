@@ -19,18 +19,16 @@ from typing import Any, Iterable, List, Tuple
 from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name
 
 
-def fetch_google_scholar_profile(scholar_id: str):
+def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tuple[str]]:
     '''
-    Step 1: Fetch Google Scholar Profile using Scholar ID.
+    Step 1. Find all citing authors.
     '''
+    # Find Google Scholar Profile using Scholar ID.
     author = scholarly.search_author_id(scholar_id)
     author = scholarly.fill(author, sections=['publications'])
-    return author
+    publications = author['publications']
+    print('Author profile found, with %d publications.\n' % len(publications))
 
-def find_all_citing_authors(publications: Iterable, num_processes: int = 16) -> List[Tuple[str]]:
-    '''
-    Step 2. Find all citing authors.
-    '''
     # Fetch metadata for all publications.
     if num_processes > 1 and isinstance(num_processes, int):
         with Pool(processes=num_processes) as pool:
@@ -72,7 +70,7 @@ def find_all_citing_affiliations(all_citing_author_paper_tuple_list: List[Tuple[
                                  num_processes: int = 16,
                                  affiliation_conservative: bool = False):
     '''
-    Step 3. Find all citing affiliations.
+    Step 2. Find all citing affiliations.
     '''
     if affiliation_conservative:
         __affiliations_from_authors = __affiliations_from_authors_conservative
@@ -98,7 +96,7 @@ def find_all_citing_affiliations(all_citing_author_paper_tuple_list: List[Tuple[
 
 def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]]) -> List[Tuple[str]]:
     '''
-    Step 4 (Optional). Clean up the names of affiliations from the authors' affiliation tab on their Google Scholar profiles.
+    Step 3 (Optional). Clean up the names of affiliations from the authors' affiliation tab on their Google Scholar profiles.
     NOTE: This logic is very naive. Please send an issue or pull request if you have any idea how to improve it.
     Currently we will not consider any paid service or tools that pose extra burden on the users, such as GPT API.
     '''
@@ -125,7 +123,7 @@ def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]
 
 def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
     '''
-    Step 5: Convert affiliations in plain text to Geocode.
+    Step 4: Convert affiliations in plain text to Geocode.
     '''
     coordinates_and_info = []
     # NOTE: According to the Nomatim Usage Policy (https://operations.osmfoundation.org/policies/nominatim/),
@@ -181,7 +179,7 @@ def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[
 
 def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True):
     '''
-    Step 6.1: Create the Citation World Map.
+    Step 5.1: Create the Citation World Map.
 
     For authors under the same affiliations, they will be displayed in the same pin.
     '''
@@ -221,7 +219,7 @@ def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True
 
 def export_csv(coordinates_and_info: List[Tuple[str]], csv_output_path: str) -> None:
     '''
-    Step 6.2: Export csv file recording citation information.
+    Step 5.2: Export csv file recording citation information.
     '''
 
     citation_df = pd.DataFrame(coordinates_and_info,
@@ -388,12 +386,8 @@ def generate_citation_map(scholar_id: str,
     if cache_path is None or not os.path.exists(cache_path):
         print('No cache found for this author. Running from scratch.\n')
 
-        # NOTE: Step 1. Fetch Google Scholar profile.
-        author_profile = fetch_google_scholar_profile(scholar_id)
-
-        # NOTE: Step 2. Find all citing authors.
-        print('Author profile found, with %d publications.\n' % len(author_profile['publications']))
-        all_citing_author_paper_tuple_list = find_all_citing_authors(author_profile['publications'],
+        # NOTE: Step 1. Find all citing authors.
+        all_citing_author_paper_tuple_list = find_all_citing_authors(scholar_id=scholar_id,
                                                                      num_processes=num_processes)
         print('A total of %d citing authors recorded.\n' % len(all_citing_author_paper_tuple_list))
         if cache_path is not None and len(all_citing_author_paper_tuple_list) > 0:
@@ -403,12 +397,12 @@ def generate_citation_map(scholar_id: str,
     else:
         print('Cache found. Loading author paper affiliation information from cache.\n')
 
-        # NOTE: Step 1 & 2. Load all citing authors.
+        # NOTE: Step 1. Load all citing authors.
         all_citing_author_paper_tuple_list = load_cache(cache_path)
         print('Loaded from cache: %s.\n' % cache_path)
         print('A total of %d citing authors loaded.\n' % len(all_citing_author_paper_tuple_list))
 
-    # NOTE: Step 3. Find all citing affiliations.
+    # NOTE: Step 2. Find all citing affiliations.
     print('Identifying affiliations using the %s approach.' % ('conservative' if affiliation_conservative else 'aggressive'))
     author_paper_affiliation_tuple_list = find_all_citing_affiliations(all_citing_author_paper_tuple_list,
                                                                        num_processes=num_processes,
@@ -417,7 +411,7 @@ def generate_citation_map(scholar_id: str,
     # Take unique tuples.
     author_paper_affiliation_tuple_list = list(set(author_paper_affiliation_tuple_list))
 
-    # NOTE: Step 4. Clean the affiliation strings (optional, only used if taking the aggressive approach).
+    # NOTE: Step 3. Clean the affiliation strings (optional, only used if taking the aggressive approach).
     if print_citing_affiliations:
         if affiliation_conservative:
             print('Taking the conservative approach. Will not need to clean the affiliation names.')
@@ -436,17 +430,17 @@ def generate_citation_map(scholar_id: str,
         # Take unique tuples.
         author_paper_affiliation_tuple_list = list(set(author_paper_affiliation_tuple_list))
 
-    # NOTE: Step 5. Convert affiliations in plain text to Geocode.
+    # NOTE: Step 4. Convert affiliations in plain text to Geocode.
     coordinates_and_info = affiliation_text_to_geocode(author_paper_affiliation_tuple_list)
     # Take unique tuples.
     coordinates_and_info = list(set(coordinates_and_info))
 
-    # NOTE: Step 6.1. Create the citation world map.
+    # NOTE: Step 5.1. Create the citation world map.
     citation_map = create_map(coordinates_and_info, pin_colorful=pin_colorful)
     citation_map.save(output_path)
     print('\nMap created and saved at %s.\n' % output_path)
 
-    # NOTE: Step 6.2. Export csv file recording citation information.
+    # NOTE: Step 5.2. Export csv file recording citation information.
     export_csv(coordinates_and_info, csv_output_path)
     print('\nCitation information exported to %s.' % csv_output_path)
     return
