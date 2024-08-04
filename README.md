@@ -124,10 +124,12 @@ Besides, there will be a **CSV file** recording citation information (citing aut
     - Some authors citing you do not have Google Scholar profiles.
     - Some authors citing you do not report their affiliations.
 2. Webscraping is performed, and CAPTCHA or robot check can often get us, especially if we crawl frequently. This is more often seen in highly cited users. Unless you are blocked by Google Scholar, at worst you will end up with missing several citing authors, which is not likely a huge deal for highly cited users anyways.
-3. `geopy.geocoders` is used to convert the citing authors' affiliations to geographic coordinates. To facilitate the process, I used some simple rule-based natural language processing to clean up the affiliations. As a result, you are expected to have:
-    - Underestimation if the affiliations are not found by `geopy.geocoders`.
-    - Underestimation if we experience communication error with `geopy.geocoders`.
-    - Overestimation if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`. (Only relevant if `affiliation_conservative` is set to False.)
+3. Affiliation identification and geolocating issues. This is a joint effect between affiliation identification and geolocating. The number of citing affiliations will be:
+    - Underestimated if some affiliations are not found by `geopy.geocoders`.
+    - Underestimated if we experience communication errors with `geopy.geocoders`.
+    - (Aggressive approach only) Overestimated if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`.
+    - (Conservative approach only) Underestimated if the citer did not verify with an email address under a matching affiliation domain.
+    - (Conservative approach only) Underestimated because all non-primary (with verified email address) affiliations are ignored.
 
     **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
 
