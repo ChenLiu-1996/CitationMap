@@ -49,6 +49,14 @@ Besides, there will be a **CSV file** recording citation information (citing aut
 
 **NOTE:** **Now you can trade off between affiliation precision and recall** with the `affiliation_conservative` option. If set to True, we will use the Google Scholar verified official organization name from the citing authors. This is a very conservative approach, since (1) the author needs to self-report it in the affiliation panel, (2) the author needs to verify with the matching email address, and (3) the organization needs to be recorded by Google Scholar. For example, Meta (the company) is not in the list. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
+## Citation
+```
+@article{liu2024CitationMap,
+  title={CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World},
+  author={Liu, Chen},
+  year={2024}
+}
+```
 
 ## User Guide
 0. If you are new to Python, you probably want to start with a distribution of Python that also helps with environment management (such as [anaconda](https://www.anaconda.com/)). Once you have set up your environment (for example, when you reach the stage of `conda activate env39` in [this tutorial](https://www.youtube.com/watch?v=MUZtVEDKXsk&t=242s)), you can move on to the next step.
