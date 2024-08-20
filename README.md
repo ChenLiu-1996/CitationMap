@@ -54,7 +54,7 @@ Besides, there will be a **CSV file** recording citation information (citing aut
 @article{liu2024CitationMap,
   title={CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World},
   author={Liu, Chen},
-  journal={TechRxiv},
+  journal={OpenReview},
   year={2024}
 }
 ```
