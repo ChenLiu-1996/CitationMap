@@ -51,11 +51,11 @@ Besides, there will be a **CSV file** recording citation information (citing aut
 
 ## Citation
 ```
-@article{liu2024CitationMap,
+@article{citationmap,
   title={CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World},
   author={Liu, Chen},
-  journal={OpenReview},
-  year={2024}
+  journal={TechRxiv},
+  year={2024},
 }
 ```
 
