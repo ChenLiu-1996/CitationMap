@@ -50,6 +50,7 @@ Besides, there will be a **CSV file** recording citation information (citing aut
 **NOTE:** **Now you can trade off between affiliation precision and recall** with the `affiliation_conservative` option. If set to True, we will use the Google Scholar verified official organization name from the citing authors. This is a very conservative approach, since (1) the author needs to self-report it in the affiliation panel, (2) the author needs to verify with the matching email address, and (3) the organization needs to be recorded by Google Scholar. For example, Meta (the company) is not in the list. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
 ## Citation
+BibTeX
 ```
 @article{citationmap,
   title={CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World},
@@ -58,6 +59,18 @@ Besides, there will be a **CSV file** recording citation information (citing aut
   year={2024},
   publisher={Authorea}
 }
+```
+MLA
+```
+Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World." Authorea Preprints (2024).
+```
+APA
+```
+Liu, C. (2024). CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World. Authorea Preprints.
+```
+Chicago
+```
+Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World." Authorea Preprints (2024).
 ```
 
 ## User Guide
