@@ -12,14 +12,14 @@
 [cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
 [cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
 
-[Chen Liu](https://www.chenliu1996.com/), CS PhD Candidate at Yale University.
+[Chen Liu](https://chenliu-1996.github.io/), CS PhD Candidate at Yale University.
 
 Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4Science.
 
 
 ## News
 **[Asking for advice]**
-1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a GitHub issue or a pull request.
+1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a **GitHub issue or a pull request**.
 
 [Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`. If set to True, we will use **a very conservative approach to identify affiliations** which leads to **much higher precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
 
