@@ -6,9 +6,10 @@ import time
 from bs4 import BeautifulSoup
 from typing import List
 
+
 def get_html_per_citation_page(soup) -> List[str]:
     '''
-    Utility to query each page containing results for 
+    Utility to query each page containing results for
     cited work.
     Parameters
     --------
@@ -17,21 +18,21 @@ def get_html_per_citation_page(soup) -> List[str]:
     citing_authors_and_citing_papers = []
 
     for result in soup.find_all('div', class_='gs_ri'):
-            title_tag = result.find('h3', class_='gs_rt')
-            if title_tag:
-                paper_parsed = 0
-                author_links = result.find_all('a', href=True)
-                title_text = title_tag.get_text()
-                title = title_text.replace('[HTML]', '').replace('[PDF]', '')
-                for link in author_links:
-                    if 'user=' in link['href']:
-                        author_id = link['href'].split('user=')[1].split('&')[0]
-                        citing_authors_and_citing_papers.append((author_id, title))
-                        paper_parsed = 1
-                if not paper_parsed:
-                    print("WARNING: Could not find author links for ", title_text)
-            else:
-                continue
+        title_tag = result.find('h3', class_='gs_rt')
+        if title_tag:
+            paper_parsed = False
+            author_links = result.find_all('a', href=True)
+            title_text = title_tag.get_text()
+            title = title_text.replace('[HTML]', '').replace('[PDF]', '')
+            for link in author_links:
+                if 'user=' in link['href']:
+                    author_id = link['href'].split('user=')[1].split('&')[0]
+                    citing_authors_and_citing_papers.append((author_id, title))
+                    paper_parsed = True
+            if not paper_parsed:
+                print("WARNING: Could not find author links for ", title_text)
+        else:
+            continue
     return citing_authors_and_citing_papers
 
 
