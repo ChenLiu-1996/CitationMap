@@ -30,7 +30,7 @@ def get_html_per_citation_page(soup) -> List[str]:
                     citing_authors_and_citing_papers.append((author_id, title))
                     paper_parsed = True
             if not paper_parsed:
-                print("WARNING: Could not find author links for ", title_text)
+                print("[WARNING!] Could not find author links for ", title_text)
         else:
             continue
     return citing_authors_and_citing_papers
