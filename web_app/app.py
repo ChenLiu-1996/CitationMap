@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, send_file, redirect, url_for
+from flask import Flask, render_template, request, send_file, Response
 from citation_map import generate_citation_map
+import contextlib
+import io
 import os
 
 app = Flask(__name__)
@@ -7,27 +9,31 @@ app = Flask(__name__)
 OUTPUT_HTML = "citation_map.html"
 OUTPUT_CSV = "citation_info.csv"
 
-
-@app.route('/', methods=['GET'])
+@app.route("/", methods=["GET"])
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route("/run/", methods=['POST'])
+@app.route("/run/", methods=["POST"])
 def run_citationmap():
-    # Retrieve the 'scholar_id' from user input.
-    scholar_id = request.form.get('scholar_id')
-
+    scholar_id = request.form.get("scholar_id")
     if not scholar_id:
-        return "Error: Please provide a Google Scholar ID", 400  # Handle missing scholar ID
+        return "Error: Please provide a Google Scholar ID", 400
 
-    # Call the citation map generation function.
-    try:
-        generate_citation_map(scholar_id=scholar_id)
-    except Exception as e:
-        return f"Error generating citation map: {str(e)}", 500
+    def stream_logs():
+        log_stream = io.StringIO()
+        with contextlib.redirect_stdout(log_stream):
+            try:
+                generate_citation_map(scholar_id=scholar_id)
+            except Exception as e:
+                yield f"Error: {str(e)}\n"
+            log_stream.seek(0)
+            for line in log_stream:
+                yield f"{line}\n"
 
-    # Redirect to a page where users can download the outputs
-    return redirect(url_for('downloads'))
+    return Response(stream_logs(), mimetype="text/plain")
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 @app.route('/downloads/', methods=['GET'])
 def downloads():
@@ -37,13 +43,11 @@ def downloads():
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
-    # Serve the requested file dynamically
     file_path = os.path.join(os.getcwd(), filename)
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
     else:
         return "Error: File not found.", 404
 
-
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
