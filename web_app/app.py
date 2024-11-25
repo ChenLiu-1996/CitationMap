@@ -32,9 +32,6 @@ def run_citationmap():
 
     return Response(stream_logs(), mimetype="text/plain")
 
-if __name__ == "__main__":
-    app.run(debug=True)
-
 @app.route('/downloads/', methods=['GET'])
 def downloads():
     return render_template('downloads.html',
