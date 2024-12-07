@@ -99,6 +99,8 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
         generate_citation_map(scholar_id)
     ```
 
+    Note that in Version 4.4, we support manual edit of the csv. You can run `generate_citation_map` first, and get the csv and HTML. Then, you can manually modify the csv content, and generate an updated HTML by running `generate_citation_map` again with `parse_csv=True`.
+
     Note that in Version 4.0, we will cache the results before identifying affiliations. So if you want to rerun the same author from scratch, you need to delete the cache (default location is 'cache').
 
     More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
@@ -187,6 +189,16 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
       ```
 
 ## Changelog
+<details>
+<summary>Version 4.4 (Dec 6, 2024)</summary>
+<br>
+
+1. **Support manual edit of the csv.** Note you do need to manually correct the coordinates too if you choose to use this functionality. You can run `generate_citation_map` first, and get the csv and HTML. Then, you can manually modify the csv content, and generate an updated HTML by running `generate_citation_map` again with `parse_csv=True`.
+2. Slight optimization on caching.
+
+</details>
+
+
 <details>
 <summary>Version 4.0 (Aug 2, 2024)</summary>
 <br>
