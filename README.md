@@ -3,7 +3,7 @@ Google Scholar Citation World Map
 </h1>
 
 <p align="center">
-<strong>CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World</strong> [<a href="https://openreview.net/pdf?id=BqJgCgl1IA" target="_blank">PDF</a>]
+<strong>CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World</strong> [<a href="https://openreview.net/pdf?id=BqJgCgl1IA">PDF</a>]
 </p>
 
 <div align="center">
