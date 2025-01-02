@@ -1,4 +1,12 @@
-# Google Scholar Citation World Map
+<h1 align="center">
+Google Scholar Citation World Map
+</h1>
+
+<p align="center">
+<strong>CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World</strong>
+</p>
+
+<div align="center">
 
 [![TechRxiv](https://img.shields.io/badge/TechRxiv-darkviolet)](https://www.techrxiv.org/users/809001/articles/1213717-citationmap-a-python-tool-to-identify-and-visualize-your-google-scholar-citations-around-the-world)
 [![OpenReview](https://img.shields.io/badge/OpenReview-firebrick)](https://openreview.net/pdf?id=BqJgCgl1IA)
@@ -12,7 +20,10 @@
 [cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
 [cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
 
-[Chen Liu](https://chenliu-1996.github.io/), CS PhD Candidate at Yale University.
+</div>
+
+
+I am [Chen Liu](https://chenliu-1996.github.io/), a CS PhD Candidate at Yale University.
 
 Research areas: Machine Learning, Spatial-Temporal Modeling, Medical Vision, AI4Science.
 
