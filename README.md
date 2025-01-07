@@ -31,18 +31,6 @@ I am [Chen Liu](https://chenliu-1996.github.io/), a CS PhD Candidate at Yale Uni
 Research areas: Machine Learning (Manifold Learning, Spatial-Temporal Dynamics, Medical Vision, AI4Science).
 
 
-## News
-**[Asking for advice]**
-1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a **GitHub issue or a pull request**.
-
-[Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`. If set to True, we will use **a very conservative approach to identify affiliations** which leads to **much higher precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
-
-[Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
-
-[Jul 27, 2024] Version 2.0 released >>> 10x speedup with multiprocessing (1 hour to 5 minutes for my profile).
-
-[Jul 26, 2024] Version 1.0 released >>> First working version for my profile with 100 citations.
-
 ## Purpose
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
 
@@ -86,6 +74,18 @@ Chicago
 ```
 Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World." Authorea Preprints (2024).
 ```
+
+## News
+**[Asking for advice]**
+1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a **GitHub issue or a pull request**.
+
+[Aug 2, 2024] Version 4.0 released >>> Logic update. A new input argument `affiliation_conservative`. If set to True, we will use **a very conservative approach to identify affiliations** which leads to **much higher precision and lower recall**. Many thanks to [Zhijian Liu](https://github.com/zhijian-liu) for the [helpful discussion](https://github.com/ChenLiu-1996/CitationMap/issues/8).
+
+[Jul 28, 2024] Version 3.10 released >>> Logic update. Tested on a professor's profile **with 10,000 citations**!
+
+[Jul 27, 2024] Version 2.0 released >>> 10x speedup with multiprocessing (1 hour to 5 minutes for my profile).
+
+[Jul 26, 2024] Version 1.0 released >>> First working version for my profile with 100 citations.
 
 ## User Guide
 0. If you are new to Python, you probably want to start with a distribution of Python that also helps with environment management (such as [anaconda](https://www.anaconda.com/)). Once you have set up your environment (for example, when you reach the stage of `conda activate env39` in [this tutorial](https://www.youtube.com/watch?v=MUZtVEDKXsk&t=242s)), you can move on to the next step.
