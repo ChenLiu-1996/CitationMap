@@ -26,7 +26,8 @@ Google Scholar Citation World Map
 
 </div>
 
-**You DO NOT need to fork this repo unless you want to make custom changes! One line to install and almost one line to run.**
+There is **no need to fork** this repo unless you want to make custom changes!
+It only takes **one line to install** and **almost one line to run**!
 
 <br>
 
