@@ -26,7 +26,9 @@ Google Scholar Citation World Map
 
 </div>
 
+**You DO NOT need to fork this repo unless you want to make custom changes.**
 
+<br>
 I am [Chen Liu](https://chenliu-1996.github.io/), a CS PhD Candidate at Yale University.
 
 Research areas: Machine Learning (Manifold Learning, Spatial-Temporal Dynamics, Medical Vision, AI4Science).
@@ -36,8 +38,6 @@ Research areas: Machine Learning (Manifold Learning, Spatial-Temporal Dynamics, 
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
 
 It is easy to install (`pip install citation-map`, available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide)).
-
-**You don't need to fork this repo unless you want to make custom changes.**
 
 ## Expected Outcome
 You will be given an **HTML file** as the output of the script.
