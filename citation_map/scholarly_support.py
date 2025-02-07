@@ -6,6 +6,8 @@ import time
 from bs4 import BeautifulSoup
 from typing import List
 
+NO_AUTHOR_FOUND_STR = 'No_author_found'
+
 
 def get_html_per_citation_page(soup) -> List[str]:
     '''
@@ -31,6 +33,7 @@ def get_html_per_citation_page(soup) -> List[str]:
                     paper_parsed = True
             if not paper_parsed:
                 print("[WARNING!] Could not find author links for ", title)
+                citing_authors_and_citing_papers.append((NO_AUTHOR_FOUND_STR, title))
         else:
             continue
     return citing_authors_and_citing_papers

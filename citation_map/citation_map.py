@@ -16,7 +16,7 @@ from scholarly import scholarly, ProxyGenerator
 from tqdm import tqdm
 from typing import Any, List, Tuple
 
-from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name
+from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR
 
 
 def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tuple[str]]:
@@ -103,23 +103,26 @@ def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]
     '''
     cleaned_author_paper_affiliation_tuple_list = []
     for author_name, citing_paper_title, cited_paper_title, affiliation_string in author_paper_affiliation_tuple_list:
-        # Use a regular expression to split the string by ';' or 'and'.
-        substring_list = [part.strip() for part in re.split(r'[;]|\band\b', affiliation_string)]
-        # Further split the substrings by ',' if the latter component is not a country.
-        substring_list = __country_aware_comma_split(substring_list)
+        if author_name == NO_AUTHOR_FOUND_STR:
+            cleaned_author_paper_affiliation_tuple_list.append((NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR))
+        else:
+            # Use a regular expression to split the string by ';' or 'and'.
+            substring_list = [part.strip() for part in re.split(r'[;]|\band\b', affiliation_string)]
+            # Further split the substrings by ',' if the latter component is not a country.
+            substring_list = __country_aware_comma_split(substring_list)
 
-        for substring in substring_list:
-            # Use a regular expression to remove anything before 'at', or '@'.
-            cleaned_affiliation = re.sub(r'.*?\bat\b|.*?@', '', substring, flags=re.IGNORECASE).strip()
-            # Use a regular expression to filter out strings that represent
-            # a person's identity rather than affiliation.
-            is_common_identity_string = re.search(
-                re.compile(
-                    r'\b(director|manager|chair|engineer|programmer|scientist|professor|lecturer|phd|ph\.d|postdoc|doctor|student|department of)\b',
-                    re.IGNORECASE),
-                cleaned_affiliation)
-            if not is_common_identity_string:
-                cleaned_author_paper_affiliation_tuple_list.append((author_name, citing_paper_title, cited_paper_title, cleaned_affiliation))
+            for substring in substring_list:
+                # Use a regular expression to remove anything before 'at', or '@'.
+                cleaned_affiliation = re.sub(r'.*?\bat\b|.*?@', '', substring, flags=re.IGNORECASE).strip()
+                # Use a regular expression to filter out strings that represent
+                # a person's identity rather than affiliation.
+                is_common_identity_string = re.search(
+                    re.compile(
+                        r'\b(director|manager|chair|engineer|programmer|scientist|professor|lecturer|phd|ph\.d|postdoc|doctor|student|department of)\b',
+                        re.IGNORECASE),
+                    cleaned_affiliation)
+                if not is_common_identity_string:
+                    cleaned_author_paper_affiliation_tuple_list.append((author_name, citing_paper_title, cited_paper_title, cleaned_affiliation))
     return cleaned_author_paper_affiliation_tuple_list
 
 def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
@@ -146,34 +149,41 @@ def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[
                                  desc='Finding geographic coordinates from %d unique citing affiliations in %d entries' % (
                                      len(affiliation_map), len(author_paper_affiliation_tuple_list)),
                                  total=len(affiliation_map)):
-        for _ in range(max_attempts):
-            try:
-                geo_location = geolocator.geocode(affiliation_name)
-                if geo_location:
-                    # Get the full location metadata that includes county, city, state, country, etc.
-                    location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude), language='en')
-                    address = location_metadata.raw['address']
-                    county, city, state, country = None, None, None, None
-                    if 'county' in address:
-                        county = address['county']
-                    if 'city' in address:
-                        city = address['city']
-                    if 'state' in address:
-                        state = address['state']
-                    if 'country' in address:
-                        country = address['country']
+        if affiliation_name == NO_AUTHOR_FOUND_STR:
+            corresponding_entries = affiliation_map[affiliation_name]
+            for entry_idx in corresponding_entries:
+                author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
+                coordinates_and_info.append((NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR,
+                                             '', '', '', '', '', ''))
+        else:
+            for _ in range(max_attempts):
+                try:
+                    geo_location = geolocator.geocode(affiliation_name)
+                    if geo_location:
+                        # Get the full location metadata that includes county, city, state, country, etc.
+                        location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude), language='en')
+                        address = location_metadata.raw['address']
+                        county, city, state, country = None, None, None, None
+                        if 'county' in address:
+                            county = address['county']
+                        if 'city' in address:
+                            city = address['city']
+                        if 'state' in address:
+                            state = address['state']
+                        if 'country' in address:
+                            country = address['country']
 
-                    corresponding_entries = affiliation_map[affiliation_name]
-                    for entry_idx in corresponding_entries:
-                        author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                        coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
-                                                     geo_location.latitude, geo_location.longitude,
-                                                     county, city, state, country))
-                    # This location is successfully recorded.
-                    num_located_affiliations += 1
-                    break
-            except:
-                continue
+                        corresponding_entries = affiliation_map[affiliation_name]
+                        for entry_idx in corresponding_entries:
+                            author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
+                            coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
+                                                        geo_location.latitude, geo_location.longitude,
+                                                        county, city, state, country))
+                        # This location is successfully recorded.
+                        num_located_affiliations += 1
+                        break
+                except:
+                    continue
     print('\nConverted %d/%d affiliations to Geocodes.' % (num_located_affiliations, num_total_affiliations))
     coordinates_and_info = [item for item in coordinates_and_info if item is not None]  # Filter out empty entries.
     return coordinates_and_info
@@ -212,7 +222,9 @@ def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True
     # Find unique affiliations and record their corresponding entries.
     affiliation_map = {}
     for entry_idx, (_, _, _, affiliation_name, _, _, _, _, _, _) in enumerate(coordinates_and_info):
-        if affiliation_name not in affiliation_map.keys():
+        if affiliation_name == NO_AUTHOR_FOUND_STR:
+            continue
+        elif affiliation_name not in affiliation_map.keys():
             affiliation_map[affiliation_name] = [entry_idx]
         else:
             affiliation_map[affiliation_name].append(entry_idx)
@@ -261,14 +273,16 @@ def __affiliations_from_authors_conservative(citing_author_paper_info: str):
     This will have higher precision and lower recall.
     '''
     citing_author_id, citing_paper_title, cited_paper_title = citing_author_paper_info
+    if citing_author_id == NO_AUTHOR_FOUND_STR:
+        return (NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR)
+
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
     citing_author = scholarly.search_author_id(citing_author_id)
 
     if 'organization' in citing_author:
-        author_name = citing_author['name']
         try:
             author_organization = get_organization_name(citing_author['organization'])
-            return (author_name, citing_paper_title, cited_paper_title, author_organization)
+            return (citing_author['name'], citing_paper_title, cited_paper_title, author_organization)
         except Exception as e:
             print('[Warning!]', e)
             return None
@@ -280,6 +294,9 @@ def __affiliations_from_authors_aggressive(citing_author_paper_info: str):
     This will have lower precision and higher recall.
     '''
     citing_author_id, citing_paper_title, cited_paper_title = citing_author_paper_info
+    if citing_author_id == NO_AUTHOR_FOUND_STR:
+        return (NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR)
+
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
     citing_author = scholarly.search_author_id(citing_author_id)
     if 'affiliation' in citing_author:
@@ -318,6 +335,8 @@ def __iscountry(string: str) -> bool:
 def __print_author_and_affiliation(author_paper_affiliation_tuple_list: List[Tuple[str]]) -> None:
     __author_affiliation_tuple_list = []
     for author_name, _, _, affiliation_name in sorted(author_paper_affiliation_tuple_list):
+        if author_name == NO_AUTHOR_FOUND_STR:
+            continue
         __author_affiliation_tuple_list.append((author_name, affiliation_name))
 
     # Take unique tuples.
