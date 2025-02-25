@@ -136,6 +136,9 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
     csv_output_path: str
         (default is 'citation_info.csv')
         The path to the output csv file.
+    parse_csv: bool
+        (default is False)
+        If True, will directly jump to Step 5.2, using the information loaded from the csv.
     cache_folder: str
         (default is 'cache')
         The folder to save intermediate results, after finding (author, paper) but before finding the affiliations.
