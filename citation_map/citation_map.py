@@ -16,7 +16,7 @@ from scholarly import scholarly, ProxyGenerator
 from tqdm import tqdm
 from typing import Any, List, Tuple, Optional
 
-from scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR
+from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR
 
 
 def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tuple[str]]:
@@ -289,19 +289,27 @@ def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True
             color = random.choice(colors)
             corresponding_entries = affiliation_map[affiliation_name]
             author_name_list = []
+            location_valid = True
             for entry_idx in corresponding_entries:
                 author_name, _, _, _, lat, lon, _, _, _, _  = coordinates_and_info[entry_idx]
+                if pd.isna(lat) or pd.isna(lon):
+                    location_valid = False
                 author_name_list.append(author_name)
-            folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list)),
-                          icon=folium.Icon(color=color)).add_to(citation_map)
+            if location_valid:
+                folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list)),
+                            icon=folium.Icon(color=color)).add_to(citation_map)
     else:
         for affiliation_name in affiliation_map:
             corresponding_entries = affiliation_map[affiliation_name]
             author_name_list = []
+            location_valid = True
             for entry_idx in corresponding_entries:
+                if pd.isna(lat) or pd.isna(lon):
+                    location_valid = False
                 author_name, _, _, _, lat, lon, _, _, _, _  = coordinates_and_info[entry_idx]
                 author_name_list.append(author_name)
-            folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list))).add_to(citation_map)
+            if location_valid:
+                folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list))).add_to(citation_map)
     return citation_map
 
 
