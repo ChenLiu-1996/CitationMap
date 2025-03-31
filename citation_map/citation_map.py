@@ -14,9 +14,9 @@ from geopy.geocoders import Nominatim
 from multiprocessing import Pool
 from scholarly import scholarly, ProxyGenerator
 from tqdm import tqdm
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, Optional
 
-from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR
+from scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR
 
 
 def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tuple[str]]:
@@ -125,12 +125,35 @@ def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]
                     cleaned_author_paper_affiliation_tuple_list.append((author_name, citing_paper_title, cited_paper_title, cleaned_affiliation))
     return cleaned_author_paper_affiliation_tuple_list
 
+def check_corner_case(affiliation_name: str) -> Optional[str]:
+    '''return the geolocation if the affiliation is a corner case. If not, then return None
+    '''
+    corner_case_dict = {'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
+                        'microsoft': ('King County', 'Redmond', 'Washington', 'USA', 47.645695, -122.131803),
+                        'ibm': ('Westchester', 'Armonk', 'New York', 'USA', 41.108252, -73.719887)}
+    affiliation_name_lower = affiliation_name.lower()
+    for key in corner_case_dict:
+        if key in affiliation_name_lower:
+            return corner_case_dict[key]
+    return None
+
+def check_wrong_affiliation(affiliation_name: str) -> bool:
+    '''return True if the affiliation is wrong, i.e., contains words such as 'computer science'
+       wrong affiliations such as 'Professor of Computer Science, Stony Brook University' will waste time in geolocator.geocode(affiliation_name) anyway
+    '''
+    none_case_dict = {NO_AUTHOR_FOUND_STR, 'computer', 'computer science', 'electrical', 'engineering', 'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor'}
+    affiliation_name_lower = affiliation_name.lower()
+    for key in none_case_dict:
+        if key in affiliation_name_lower:
+            return True
+    return False
+
 def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
     '''
     Step 4: Convert affiliations in plain text to Geocode.
     '''
     coordinates_and_info = []
-    # NOTE: According to the Nomatim Usage Policy (https://operations.osmfoundation.org/policies/nominatim/),
+    # NOTE: According to the Nominatim Usage Policy (https://operations.osmfoundation.org/policies/nominatim/),
     # we are explicitly asked not to submit bulk requests on multiple threads.
     # Therefore, we will keep it to a loop instead of multiprocessing.
     geolocator = Nominatim(user_agent='citation_mapper')
@@ -143,21 +166,33 @@ def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[
         else:
             affiliation_map[affiliation_name].append(entry_idx)
 
+    wrong_affilitions = []
     num_total_affiliations = len(affiliation_map)
     num_located_affiliations = 0
     for affiliation_name in tqdm(affiliation_map,
                                  desc='Finding geographic coordinates from %d unique citing affiliations in %d entries' % (
                                      len(affiliation_map), len(author_paper_affiliation_tuple_list)),
                                  total=len(affiliation_map)):
-        if affiliation_name == NO_AUTHOR_FOUND_STR:
-            corresponding_entries = affiliation_map[affiliation_name]
-            for entry_idx in corresponding_entries:
-                author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                coordinates_and_info.append((NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR,
-                                             '', '', '', '', '', ''))
+        if check_wrong_affiliation(affiliation_name):
+            # do not save it to coordinates_and_info, recording it doesn't make sense
+            wrong_affilitions.append(affiliation_name)
         else:
             for _ in range(max_attempts):
                 try:
+                    # check corner cases first
+                    geo_location = check_corner_case(affiliation_name)
+                    if geo_location:
+                        county, city, state, country = geo_location[0], geo_location[1], geo_location[2], geo_location[3]
+                        latitude, longitude = geo_location[4], geo_location[5]
+                        corresponding_entries = affiliation_map[affiliation_name]
+                        for entry_idx in corresponding_entries:
+                            author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
+                            coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
+                                                        latitude, longitude, county, city, state, country))
+                        # This location is successfully recorded.
+                        num_located_affiliations += 1
+                        break
+
                     geo_location = geolocator.geocode(affiliation_name)
                     if geo_location:
                         # Get the full location metadata that includes county, city, state, country, etc.
@@ -184,6 +219,7 @@ def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[
                         break
                 except:
                     continue
+    print(f'wrong affiliations:\n{wrong_affilitions}')
     print('\nConverted %d/%d affiliations to Geocodes.' % (num_located_affiliations, num_total_affiliations))
     coordinates_and_info = [item for item in coordinates_and_info if item is not None]  # Filter out empty entries.
     return coordinates_and_info
@@ -487,7 +523,7 @@ def generate_citation_map(scholar_id: str,
         # NOTE: Step 4. Convert affiliations in plain text to Geocode.
         coordinates_and_info = affiliation_text_to_geocode(author_paper_affiliation_tuple_list)
         # Take unique tuples.
-        coordinates_and_info = list(set(coordinates_and_info))
+        coordinates_and_info = sorted(list(set(coordinates_and_info)))
 
         # NOTE: Step 5.1. Export csv file recording citation information.
         export_dict_to_csv(coordinates_and_info, csv_output_path)

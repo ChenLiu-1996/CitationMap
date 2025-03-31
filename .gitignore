@@ -11,3 +11,6 @@ data
 # Data
 **/*.npy
 **/*.npz
+
+*.csv
+*.html
