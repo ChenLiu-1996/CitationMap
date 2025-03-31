@@ -154,7 +154,7 @@ def affiliation_invalid(affiliation_name: str) -> bool:
     invalid_affiliation_set = {
         NO_AUTHOR_FOUND_STR,
         'computer', 'computer science', 'electrical', 'engineering',
-        'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor',
+        'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor', 'faculty',
     }
     affiliation_name_lower = affiliation_name.lower()
     for key in invalid_affiliation_set:
