@@ -125,25 +125,39 @@ def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]
                     cleaned_author_paper_affiliation_tuple_list.append((author_name, citing_paper_title, cited_paper_title, cleaned_affiliation))
     return cleaned_author_paper_affiliation_tuple_list
 
-def check_corner_case(affiliation_name: str) -> Optional[str]:
-    '''return the geolocation if the affiliation is a corner case. If not, then return None
+def fill_known_affiliations(affiliation_name: str) -> Optional[str]:
     '''
-    corner_case_dict = {'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
-                        'microsoft': ('King County', 'Redmond', 'Washington', 'USA', 47.645695, -122.131803),
-                        'ibm': ('Westchester', 'Armonk', 'New York', 'USA', 41.108252, -73.719887)}
-    affiliation_name_lower = affiliation_name.lower()
+    If the affiliation is known, return its geolocation.
+    If not, return None.
+    The reason we have this function is taht geolocator may return hilarious results,
+    such as putting the company Amazon in Amazon rain forest.
+    NOTE: This is a temporal fix. Can be replaced by smarter natural language parsers.
+    '''
+    corner_case_dict = {
+        'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
+        'meta': ('Menlo Park', 'San Mateo', 'California', 'USA', 37.4851, -122.1483),
+        'microsoft': ('King County', 'Redmond', 'Washington', 'USA', 47.645695, -122.131803),
+        'ibm': ('Westchester', 'Armonk', 'New York', 'USA', 41.108252, -73.719887),
+    }
     for key in corner_case_dict:
-        if key in affiliation_name_lower:
+        if key in affiliation_name.lower():
             return corner_case_dict[key]
     return None
 
-def check_wrong_affiliation(affiliation_name: str) -> bool:
-    '''return True if the affiliation is wrong, i.e., contains words such as 'computer science'
-       wrong affiliations such as 'Professor of Computer Science, Stony Brook University' will waste time in geolocator.geocode(affiliation_name) anyway
+def affiliation_invalid(affiliation_name: str) -> bool:
     '''
-    none_case_dict = {NO_AUTHOR_FOUND_STR, 'computer', 'computer science', 'electrical', 'engineering', 'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor'}
+    Check if the affiliation is invalid.
+    Typical invalid affiliation contains non-affiliation words, such as 'computer science'.
+    Invalid affiliations will waste time in geolocator.geocode(affiliation_name).
+    NOTE: This is a temporal fix. Can be replaced by smarter natural language parsers.
+    '''
+    invalid_affiliation_set = {
+        NO_AUTHOR_FOUND_STR,
+        'computer', 'computer science', 'electrical', 'engineering',
+        'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor',
+    }
     affiliation_name_lower = affiliation_name.lower()
-    for key in none_case_dict:
+    for key in invalid_affiliation_set:
         if key in affiliation_name_lower:
             return True
     return False
@@ -166,60 +180,61 @@ def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[
         else:
             affiliation_map[affiliation_name].append(entry_idx)
 
-    wrong_affilitions = []
     num_total_affiliations = len(affiliation_map)
     num_located_affiliations = 0
     for affiliation_name in tqdm(affiliation_map,
                                  desc='Finding geographic coordinates from %d unique citing affiliations in %d entries' % (
                                      len(affiliation_map), len(author_paper_affiliation_tuple_list)),
                                  total=len(affiliation_map)):
-        if check_wrong_affiliation(affiliation_name):
-            # do not save it to coordinates_and_info, recording it doesn't make sense
-            wrong_affilitions.append(affiliation_name)
+        if affiliation_invalid(affiliation_name):
+            # If an affiliation is invalid, we will not run geolocator on it.
+            # However, we still record it in the csv, so that the user can choose to manually correct it.
+            corresponding_entries = affiliation_map[affiliation_name]
+            for entry_idx in corresponding_entries:
+                author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
+                coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
+                                            '', '', '', '', '', ''))
         else:
-            for _ in range(max_attempts):
-                try:
-                    # check corner cases first
-                    geo_location = check_corner_case(affiliation_name)
-                    if geo_location:
-                        county, city, state, country = geo_location[0], geo_location[1], geo_location[2], geo_location[3]
-                        latitude, longitude = geo_location[4], geo_location[5]
-                        corresponding_entries = affiliation_map[affiliation_name]
-                        for entry_idx in corresponding_entries:
-                            author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                            coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
-                                                        latitude, longitude, county, city, state, country))
-                        # This location is successfully recorded.
-                        num_located_affiliations += 1
-                        break
+            # Directly enter information if the affiliation is known.
+            geo_location = fill_known_affiliations(affiliation_name)
+            if geo_location is not None:
+                county, city, state, country, latitude, longitude = geo_location
+                corresponding_entries = affiliation_map[affiliation_name]
+                for entry_idx in corresponding_entries:
+                    author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
+                    coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
+                                                latitude, longitude, county, city, state, country))
+                # This location is successfully recorded.
+                num_located_affiliations += 1
+            else:
+                for _ in range(max_attempts):
+                    try:
+                        geo_location = geolocator.geocode(affiliation_name)
+                        if geo_location is not None:
+                            # Get the full location metadata that includes county, city, state, country, etc.
+                            location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude), language='en')
+                            address = location_metadata.raw['address']
+                            county, city, state, country = None, None, None, None
+                            if 'county' in address:
+                                county = address['county']
+                            if 'city' in address:
+                                city = address['city']
+                            if 'state' in address:
+                                state = address['state']
+                            if 'country' in address:
+                                country = address['country']
 
-                    geo_location = geolocator.geocode(affiliation_name)
-                    if geo_location:
-                        # Get the full location metadata that includes county, city, state, country, etc.
-                        location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude), language='en')
-                        address = location_metadata.raw['address']
-                        county, city, state, country = None, None, None, None
-                        if 'county' in address:
-                            county = address['county']
-                        if 'city' in address:
-                            city = address['city']
-                        if 'state' in address:
-                            state = address['state']
-                        if 'country' in address:
-                            country = address['country']
-
-                        corresponding_entries = affiliation_map[affiliation_name]
-                        for entry_idx in corresponding_entries:
-                            author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                            coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
-                                                        geo_location.latitude, geo_location.longitude,
-                                                        county, city, state, country))
-                        # This location is successfully recorded.
-                        num_located_affiliations += 1
-                        break
-                except:
-                    continue
-    print(f'wrong affiliations:\n{wrong_affilitions}')
+                            corresponding_entries = affiliation_map[affiliation_name]
+                            for entry_idx in corresponding_entries:
+                                author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
+                                coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
+                                                            geo_location.latitude, geo_location.longitude,
+                                                            county, city, state, country))
+                            # This location is successfully recorded.
+                            num_located_affiliations += 1
+                            break
+                    except:
+                        continue
     print('\nConverted %d/%d affiliations to Geocodes.' % (num_located_affiliations, num_total_affiliations))
     coordinates_and_info = [item for item in coordinates_and_info if item is not None]  # Filter out empty entries.
     return coordinates_and_info
