@@ -8,6 +8,19 @@ from typing import List
 
 NO_AUTHOR_FOUND_STR = 'No_author_found'
 
+# Observation: the Nominatim package is very bad at getting the geolocation of companies (geolocation of universities are fine).
+# Temporary solution: hard code the geolocations of the companies.
+# NOTE: The headquarter represents the whole company which usually has many offices accross the world.
+KNOWN_AFFILIATION_DICT = {
+    'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
+    'meta': ('Menlo Park', 'San Mateo', 'California', 'USA', 37.4851, -122.1483),
+    'microsoft': ('King County', 'Redmond', 'Washington', 'USA', 47.645695, -122.131803),
+    'ibm': ('Westchester', 'Armonk', 'New York', 'USA', 41.108252, -73.719887),
+    'google': ('Santa Clara', 'Mountain View', 'California', 'USA', 37.421473, -122.080679),
+    'morgan stanley': ('New York', 'New York', 'New York', 'USA', 40.760251, -73.98518),
+    'siemens healthineers': ('Forchheim', 'Forchheim', 'Bavaria', 'Germany', 49.702088, 11.055870),
+    'oracle': ('Travis', 'Austin', 'Texas', 'USA', 30.242913, -97.721641)
+}
 
 def get_html_per_citation_page(soup) -> List[str]:
     '''
@@ -121,17 +134,3 @@ def get_organization_name(organization_id: str) -> str:
     if not tag:
         raise Exception(f'When getting organization name, failed to parse {url}.')
     return tag.text.replace('Learn more', '').strip()
-
-# Observation: the Nominatim package is very bad at getting the geolocation of companies (geolocation of universities are fine)
-# Solution: hard code the geolocations of the companies. 
-# NOTE: The headquarter represents the whole company which usually has many offices accross the world.
-KNOWN_AFFILIATION_DICT = {
-        'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
-        'meta': ('Menlo Park', 'San Mateo', 'California', 'USA', 37.4851, -122.1483),
-        'microsoft': ('King County', 'Redmond', 'Washington', 'USA', 47.645695, -122.131803),
-        'ibm': ('Westchester', 'Armonk', 'New York', 'USA', 41.108252, -73.719887),
-        'google': ('Santa Clara', 'Mountain View', 'California', 'USA', 37.421473, -122.080679),
-        'morgan stanley': ('New York', 'New York', 'New York', 'USA', 40.760251, -73.98518),
-        'siemens healthineers': ('Forchheim', 'Forchheim', 'Bavaria', 'Germany', 49.702088, 11.055870),
-        'oracle': ('Travis', 'Austin', 'Texas', 'USA', 30.242913, -97.721641)
-    }
