@@ -16,7 +16,7 @@ from scholarly import scholarly, ProxyGenerator
 from tqdm import tqdm
 from typing import Any, List, Tuple, Optional
 
-from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR
+from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR, KNOWN_AFFILIATION_DICT
 
 
 def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tuple[str]]:
@@ -133,15 +133,9 @@ def fill_known_affiliations(affiliation_name: str) -> Optional[str]:
     such as putting the company Amazon in Amazon rain forest.
     NOTE: This is a temporal fix. Can be replaced by smarter natural language parsers.
     '''
-    corner_case_dict = {
-        'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
-        'meta': ('Menlo Park', 'San Mateo', 'California', 'USA', 37.4851, -122.1483),
-        'microsoft': ('King County', 'Redmond', 'Washington', 'USA', 47.645695, -122.131803),
-        'ibm': ('Westchester', 'Armonk', 'New York', 'USA', 41.108252, -73.719887),
-    }
-    for key in corner_case_dict:
+    for key in KNOWN_AFFILIATION_DICT:
         if key in affiliation_name.lower():
-            return corner_case_dict[key]
+            return KNOWN_AFFILIATION_DICT[key]
     return None
 
 def affiliation_invalid(affiliation_name: str) -> bool:
@@ -152,13 +146,12 @@ def affiliation_invalid(affiliation_name: str) -> bool:
     NOTE: This is a temporal fix. Can be replaced by smarter natural language parsers.
     '''
     invalid_affiliation_set = {
-        NO_AUTHOR_FOUND_STR,
-        'computer', 'computer science', 'electrical', 'engineering',
-        'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor', 'faculty',
+        NO_AUTHOR_FOUND_STR.lower(),
+        'computer', 'computer science', 'electrical', 'engineering', 'researcher',
+        'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor', 'faculty', 'associate'
     }
-    affiliation_name_lower = affiliation_name.lower()
     for key in invalid_affiliation_set:
-        if key in affiliation_name_lower:
+        if key in affiliation_name.lower():
             return True
     return False
 
