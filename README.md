@@ -18,7 +18,6 @@ Google Scholar Citation World Map
 [![Latest PyPI version](https://img.shields.io/pypi/v/citation-map.svg)](https://pypi.org/project/citation-map/)
 [![PyPI download 3 month](https://static.pepy.tech/badge/citation-map)](https://pepy.tech/projects/citation-map)
 [![PyPI download month](https://img.shields.io/pypi/dm/citation-map.svg)](https://pypistats.org/packages/citation-map)
-[![PyPI download day](https://img.shields.io/pypi/dd/citation-map.svg)](https://pypistats.org/packages/citation-map)
 
 [cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
 [cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
