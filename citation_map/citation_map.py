@@ -305,6 +305,20 @@ def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True
                 folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list))).add_to(citation_map)
     return citation_map
 
+def count_citation_stats(coordinates_and_info: List[Tuple[str]]) -> List[int]:
+    '''
+    Count the number of citing authors, affiliations and countries.
+    '''
+    unique_author_list, unique_affiliation_list, unique_country_list = set(), set(), set()
+    for (author_name, _, _, affiliation_name, _, _, _, _, _, country) in coordinates_and_info:
+        if affiliation_name == NO_AUTHOR_FOUND_STR:
+            continue
+        unique_author_list.add(author_name)
+        unique_affiliation_list.add(affiliation_name)
+        unique_country_list.add(country)
+        num_authors, num_affiliations, num_countries = \
+            len(unique_author_list), len(unique_affiliation_list), len(unique_country_list)
+    return num_authors, num_affiliations, num_countries
 
 def __fill_publication_metadata(pub):
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
@@ -555,6 +569,10 @@ def generate_citation_map(scholar_id: str,
     citation_map = create_map(coordinates_and_info, pin_colorful=pin_colorful)
     citation_map.save(output_path)
     print('\nHTML map created and saved at %s.\n' % output_path)
+
+    num_authors, num_affiliations, num_countries = count_citation_stats(coordinates_and_info)
+    print('\nYou have been cited by %s researchers from %s affiliations and %s countries.\n' % (
+        num_authors, num_affiliations, num_countries))
     return
 
 
