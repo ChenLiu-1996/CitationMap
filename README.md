@@ -43,11 +43,11 @@ It is easy to install (available on [PyPI](https://pypi.org/project/citation-map
 
 ## Minimalistic User Guide
 This is for users familiar with python. Otherwise, please read the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide).
-### 1 line to install.
+### &#x26A0; 1 line to install.
 ```
 pip install citation-map
 ```
-### 4 lines to run.
+### &#x26A0; 4 lines to run.
 ```python3
 from citation_map import generate_citation_map
 
