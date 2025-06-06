@@ -27,7 +27,7 @@ Google Scholar Citation World Map
 
 &#x26A0; There is **no need to fork** this repo unless you want to make custom changes.
 
-&#x26A0; It only takes **one line to install** and **almost one line to run**!
+&#x26A0; It only takes **one line to install** and **4 lines to run**!
 
 <br>
 
@@ -39,7 +39,23 @@ Research areas: Machine Learning (Manifold Learning, Spatial-Temporal Dynamics, 
 ## Purpose
 This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
 
-It is easy to install (`pip install citation-map`, available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide)).
+It is easy to install (available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide)).
+
+## Minimalistic User Guide
+This is for users familiar with python. Otherwise, please read the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide).
+### 1 line to install.
+```
+pip install citation-map
+```
+### 4 lines to run.
+```python3
+    from citation_map import generate_citation_map
+
+    if __name__ == '__main__':
+        # This is my Google Scholar ID. Replace this with your ID.
+        scholar_id = '3rDjnykAAAAJ'
+        generate_citation_map(scholar_id)
+```
 
 ## Expected Outcome
 You will be given an **HTML file** as the output of the script.
@@ -107,7 +123,7 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
 
     - **NOTE 1**: Please **DO NOT** name your script `citation_map.py` which would cause circular import as this package itself shares the same name. Call it something else: e.g., `run_citation_map.py`, `run.py`, etc. See [Issue #2](https://github.com/ChenLiu-1996/CitationMap/issues/2).
     - **NOTE 2**: Protecting with `if __name__ == '__main__'` seems necessary to avoid multiprocessing problems, and it is a good practice anyways.
-    ```
+    ```python3
     from citation_map import generate_citation_map
 
     if __name__ == '__main__':
@@ -194,7 +210,7 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
 
     - I believe this is because you did not protect your main function with `if __name__ == '__main__'`. You can take a look at the recommended script again.
     - If this still does not help, you might want to write your script slightly differently. Credit to [dk-liang](https://github.com/dk-liang) in [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672).
-      ```
+      ```python3
       from citation_map import generate_citation_map
 
       def main():
