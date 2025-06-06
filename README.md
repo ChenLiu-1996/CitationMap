@@ -279,7 +279,7 @@ I applied a simple fix with some rule-based natural language processing. This he
 <details>
 <summary>Version 2.0 (Jul 27, 2024)</summary>
 <br>
-I finally managed to **drastically speed up** the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
+I finally managed to <strong>drastically speed up</strong> the process using multiprocessing, in a way that avoids being blocked by Google Scholar.
 
 On my personal computer, processing my profile with 100 citations took 1 hour with version 1.0 while it's now taking 5 minutes with version 2.0.
 
