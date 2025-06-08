@@ -25,7 +25,7 @@
 
 </div>
 
-&#127942; The **first free tool** in the world to visualize your Google Scholar citations on a world map.
+&#127942; The **world's first free tool** to visualize your Google Scholar citations on a world map.
 
 &#127919; There is **no need to fork** this repo unless you want to make custom changes.
 
