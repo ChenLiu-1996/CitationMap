@@ -1,5 +1,5 @@
 <h1 align="center">
-Google Scholar Citation World Map
+&#127759; Google Scholar Citation World Map
 </h1>
 
 <p align="center">
@@ -25,9 +25,11 @@ Google Scholar Citation World Map
 
 </div>
 
-&#x26A0; There is **no need to fork** this repo unless you want to make custom changes.
+&#127942; The **first free tool** in the world to visualize your Google Scholar citations on a world map.
 
-&#x26A0; It only takes **one line to install** and **4 lines to run**!
+&#127919; There is **no need to fork** this repo unless you want to make custom changes.
+
+&#127919; It only takes **one line to install** and **4 lines to run**!
 
 <br>
 
