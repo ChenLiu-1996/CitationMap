@@ -1,5 +1,5 @@
 <h1 align="center">
-&#127759; Google Scholar Citation World Map (<code>CitationMap</code>)
+&#127759; <code>CitationMap</code>: Google Scholar Citation World Map
 </h1>
 
 <p align="center">
