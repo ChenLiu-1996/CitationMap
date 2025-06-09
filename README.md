@@ -1,5 +1,5 @@
 <h1 align="center">
-&#127759; Google Scholar Citation World Map
+&#127759; Google Scholar Citation World Map (<code>CitationMap</code>)
 </h1>
 
 <p align="center">
@@ -31,7 +31,7 @@
 
 &#127919; It only takes **one line to install** and **4 lines to run**!
 
-&#9757; If you have trouble running CitationMap, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
+&#128073; If you have trouble running <code>CitationMap</code>, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
 
 <br>
 
