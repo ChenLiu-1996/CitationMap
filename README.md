@@ -37,7 +37,7 @@
 
 I am [Chen Liu](https://chenliu-1996.github.io/), a CS PhD Candidate at Yale University.
 
-Research areas: Machine Learning (Manifold Learning, Spatial-Temporal Dynamics, Multimodal, Self-Supervised Learning).
+Research areas: Machine Learning (Manifold Learning, Dynamics Modeling, Multimodal, Self-Supervised Learning).
 
 
 ## Purpose
