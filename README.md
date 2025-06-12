@@ -33,7 +33,7 @@
 
 &#128073; If you have trouble running <code>CitationMap</code>, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
 
-<br><br>
+<br>
 
 I am [Chen Liu](https://chenliu-1996.github.io/), a CS PhD Candidate at Yale University.
 
