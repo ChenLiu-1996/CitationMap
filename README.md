@@ -29,7 +29,7 @@
 
 &#11088; There is **no need to fork** this repo unless you want to make custom changes.
 
-&#11088; It only takes **one line to install** and **4 lines to run**!
+&#128640; It only takes **one line to install** and **4 lines to run**!
 
 &#128073; If you have trouble running <code>CitationMap</code>, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
 
@@ -47,11 +47,11 @@ It is easy to install (available on [PyPI](https://pypi.org/project/citation-map
 
 ## Minimalistic User Guide
 This is for users familiar with python. Otherwise, please read the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide).
-### &#11088; 1 line to install.
+### &#128640; 1 line to install.
 ```
 pip install citation-map
 ```
-### &#11088; 4 lines to run.
+### &#128640; 4 lines to run.
 ```python3
 from citation_map import generate_citation_map
 
