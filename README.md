@@ -35,7 +35,7 @@
 
 <br>
 
-I am [Chen Liu](https://chenliu-1996.github.io/), a CS PhD Candidate at Yale University.
+I am [Chen Liu](https://chenliu-1996.github.io/), a Computer Science PhD Candidate at Yale University.
 
 Research areas: Machine Learning (Manifold Learning, Dynamics Modeling, Multimodal, Self-Supervised Learning).
 
