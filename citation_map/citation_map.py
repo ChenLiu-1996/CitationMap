@@ -297,9 +297,9 @@ def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True
             author_name_list = []
             location_valid = True
             for entry_idx in corresponding_entries:
+                author_name, _, _, _, lat, lon, _, _, _, _  = coordinates_and_info[entry_idx]
                 if pd.isna(lat) or pd.isna(lon) or lat == '' or lon == '':
                     location_valid = False
-                author_name, _, _, _, lat, lon, _, _, _, _  = coordinates_and_info[entry_idx]
                 author_name_list.append(author_name)
             if location_valid:
                 folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list))).add_to(citation_map)
