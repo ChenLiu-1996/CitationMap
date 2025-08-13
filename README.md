@@ -29,7 +29,7 @@
 
 &#11088; There is **no need to fork** this repo unless you want to make custom changes.
 
-&#128640; It only takes **one line to install** and **4 lines to run**!
+&#128640; It only takes **1 line to install** and **4 lines to run**!
 
 &#128073; If you have trouble running <code>CitationMap</code>, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
 
