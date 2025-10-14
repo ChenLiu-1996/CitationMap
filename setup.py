@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setup(
     name='citation-map',
-    version='4.12',
+    version='5.0',
     license='CC BY-NC-SA',
     author='Chen Liu',
     author_email='chen.liu.cl2482@yale.edu',
@@ -16,11 +16,11 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/ChenLiu-1996/CitationMap',
     keywords='citation map, citation world map, google scholar',
-    install_requires=['scholarly', 'geopy', 'folium', 'tqdm', 'requests', 'bs4', 'pycountry', 'pandas'],
+    install_requires=['scholarly', 'geopy', 'folium', 'tqdm', 'selenium', 'bs4', 'pycountry', 'pandas'],
     classifiers=[
     'Development Status :: 3 - Alpha',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers
-    'License :: Other/Proprietary License',   # Again, pick a license
-    'Programming Language :: Python :: 3',      #Specify which pyhton versions that you want to support
+    'License :: Other/Proprietary License', # Again, pick a license
+    'Programming Language :: Python :: 3',  # Specify which pyhton versions that you want to support
     ],
 )

@@ -1,10 +1,10 @@
 # Copyright (c) 2024 Chen Liu
 # All rights reserved.
 import random
-import requests
 import time
 from bs4 import BeautifulSoup
 from typing import List
+from selenium import webdriver
 
 NO_AUTHOR_FOUND_STR = 'No_author_found'
 
@@ -21,6 +21,30 @@ KNOWN_AFFILIATION_DICT = {
     'siemens healthineers': ('Forchheim', 'Forchheim', 'Bavaria', 'Germany', 49.702088, 11.055870),
     'oracle': ('Travis', 'Austin', 'Texas', 'USA', 30.242913, -97.721641)
 }
+
+global_driver = None
+
+def get_driver():
+    global global_driver
+    if global_driver is None:
+        global_driver = webdriver.Chrome()
+        print("[INFO] Browser opened. You can solve CAPTCHAs (if prompted) in the browser window.")
+        print("[INFO] KEEP THE POP-UP BROWSER OPEN until the CitationMap program is complete.")
+    return global_driver
+
+def wait_for_captcha(driver):
+    '''
+    Wait for user to solve CAPTCHA if present.
+    '''
+    page_source = driver.page_source
+    if 'CAPTCHA' in page_source or 'not a robot' in page_source:
+        print("\n" + "="*60)
+        print("CAPTCHA DETECTED! Please solve it in the browser.")
+        print("Press Enter here after you've solved it...")
+        print("="*60)
+        input()  # Wait for user to press Enter
+        time.sleep(1)
+    return
 
 def get_html_per_citation_page(soup) -> List[str]:
     '''
@@ -62,26 +86,17 @@ def get_citing_author_ids_and_citing_papers(paper_url: str) -> List[str]:
     '''
     citing_authors_and_citing_papers = []
 
-    headers = requests.utils.default_headers()
-    headers.update({
-        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
-    })
-
+    driver = get_driver()
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
 
     # Search the url of all citing papers.
-    response = requests.get(paper_url, headers=headers)
-    if response.status_code != 200:
-        raise Exception('Failed to fetch the Google Scholar page')
+    driver.get(paper_url)
+    wait_for_captcha(driver)
 
     # Get the HTML data.
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
 
     # Check for common indicators of blocking
-    if 'CAPTCHA' in soup.text or 'not a robot' in soup.text:
-        print('[WARNING!] Blocked by CAPTCHA or robot check when searching %s.' % paper_url)
-        return []
-
     if 'Access Denied' in soup.text or 'Forbidden' in soup.text:
         print('[WARNING!] Access denied or forbidden when searching searching %s.' % paper_url)
         return []
@@ -100,10 +115,9 @@ def get_citing_author_ids_and_citing_papers(paper_url: str) -> List[str]:
             next_url = 'https://scholar.google.com' + navigation['href']
             time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
 
-            response = requests.get(next_url, headers=headers)
-            if response.status_code != 200:
-                break
-            soup = BeautifulSoup(response.text, 'html.parser')
+            driver.get(next_url)
+            wait_for_captcha(driver)
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
             citing_authors_and_citing_papers += get_html_per_citation_page(soup)
         else:
             continue
@@ -115,21 +129,17 @@ def get_organization_name(organization_id: str) -> str:
     Get the official name of the organization defined by the unique Google Scholar organization ID.
     '''
 
-    headers = requests.utils.default_headers()
-    headers.update({
-        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0',
-    })
+    driver = get_driver()
+    time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
 
     url = f'https://scholar.google.com/citations?view_op=view_org&org={organization_id}&hl=en'
 
     time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
 
-    response = requests.get(url, headers=headers)
+    driver.get(url)
+    wait_for_captcha(driver)
 
-    if response.status_code != 200:
-        raise Exception(f'When getting organization name, failed to fetch {url}: {response.text}.')
-
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
     tag = soup.find('h2', {'class': 'gsc_authors_header'})
     if not tag:
         raise Exception(f'When getting organization name, failed to parse {url}.')

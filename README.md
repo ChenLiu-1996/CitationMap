@@ -31,6 +31,8 @@
 
 &#128640; It only takes **1 line to install** and **4 lines to run**!
 
+&#127760; A properly installed Chrome browser is required to run this successfully, since CAPTCHA checks will be redirected to a pop-up Chrome browser.
+
 &#128073; If you have trouble running <code>CitationMap</code>, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
 
 <br>
@@ -228,6 +230,15 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
       ```
 
 ## Changelog
+<details>
+<summary>Version 5.0 (Oct 14, 2025)</summary>
+<br>
+
+1. **Better solving of CAPTCHA/bot detection.** Now YOU, the human user, are responsible for manually solving the CAPTCHAs when prompted. I believe at least this is better than not being able to do anything while watching the program get terminated because of bot detection.
+
+</details>
+
+
 <details>
 <summary>Version 4.5 (Dec 6, 2024)</summary>
 <br>

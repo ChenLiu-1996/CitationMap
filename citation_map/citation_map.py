@@ -31,7 +31,7 @@ def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tu
     print('Author profile found, with %d publications.\n' % len(publications))
 
     # Fetch metadata for all publications.
-    if num_processes > 1 and isinstance(num_processes, int):
+    if isinstance(num_processes, int) and num_processes > 1:
         with Pool(processes=num_processes) as pool:
             all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications),
                                          desc='Filling metadata for your %d publications' % len(publications),
@@ -53,17 +53,12 @@ def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tu
                 all_publication_info.append((cites_id, pub_title))
 
     # Find all citing authors from all publications.
-    if num_processes > 1 and isinstance(num_processes, int):
-        with Pool(processes=num_processes) as pool:
-            all_citing_author_paper_info_nested = list(tqdm(pool.imap(__citing_authors_and_papers_from_publication, all_publication_info),
-                                                            desc='Finding citing authors and papers on your %d publications' % len(all_publication_info),
-                                                            total=len(all_publication_info)))
-    else:
-        all_citing_author_paper_info_nested = []
-        for pub in tqdm(all_publication_info,
-                        desc='Finding citing authors and papers on your %d publications' % len(all_publication_info),
-                        total=len(all_publication_info)):
-            all_citing_author_paper_info_nested.append(__citing_authors_and_papers_from_publication(pub))
+    # To best solve CAPTCHA problems, we won't perform parallel processing here.
+    all_citing_author_paper_info_nested = []
+    for pub in tqdm(all_publication_info,
+                    desc='Finding citing authors and papers on your %d publications' % len(all_publication_info),
+                    total=len(all_publication_info)):
+        all_citing_author_paper_info_nested.append(__citing_authors_and_papers_from_publication(pub))
     all_citing_author_paper_tuple_list = list(itertools.chain(*all_citing_author_paper_info_nested))
     return all_citing_author_paper_tuple_list
 
@@ -492,7 +487,7 @@ def generate_citation_map(scholar_id: str,
             # NOTE: Step 1. Find all publications of the given Google Scholar ID.
             #       Step 2. Find all citing authors.
             all_citing_author_paper_tuple_list = find_all_citing_authors(scholar_id=scholar_id,
-                                                                        num_processes=num_processes)
+                                                                         num_processes=num_processes)
             print('A total of %d citing authors recorded.\n' % len(all_citing_author_paper_tuple_list))
             if cache_path is not None and len(all_citing_author_paper_tuple_list) > 0:
                 save_cache(all_citing_author_paper_tuple_list, cache_path)
@@ -579,8 +574,13 @@ def generate_citation_map(scholar_id: str,
 if __name__ == '__main__':
     # Replace this with your Google Scholar ID.
     scholar_id = '3rDjnykAAAAJ'
-    generate_citation_map(scholar_id, output_path='citation_map.html',
+    generate_citation_map(scholar_id,
+                          output_path='citation_map.html',
                           csv_output_path='citation_info.csv',
                           parse_csv=False,
-                          cache_folder='cache', affiliation_conservative=True, num_processes=16,
-                          use_proxy=False, pin_colorful=True, print_citing_affiliations=True)
+                          cache_folder='cache',
+                          affiliation_conservative=True,
+                          num_processes=16,
+                          use_proxy=False,
+                          pin_colorful=True,
+                          print_citing_affiliations=True)
