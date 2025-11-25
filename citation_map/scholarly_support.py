@@ -27,8 +27,37 @@ global_driver = None
 def get_driver():
     global global_driver
     if global_driver is None:
-        global_driver = webdriver.Chrome()
-        print("[INFO] Browser opened. You can solve CAPTCHAs (if prompted) in the browser window.")
+        # Configure Chrome options to avoid bot detection
+        options = webdriver.ChromeOptions()
+
+        # Add user agent to mimic a real browser
+        options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+
+        # Disable automation flags
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+
+        # Additional options to appear more like a normal browser
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-gpu')
+
+        # Set window size to avoid headless detection
+        options.add_argument('--window-size=1920,1080')
+        options.add_argument('--start-maximized')
+
+        # Initialize the driver with options
+        global_driver = webdriver.Chrome(options=options)
+
+        # Execute CDP commands to further mask automation
+        global_driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+            "userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        })
+        global_driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+
+        print("[INFO] Browser opened with anti-detection measures.")
+        print("[INFO] You can solve CAPTCHAs (if prompted) in the browser window.")
         print("[INFO] KEEP THE POP-UP BROWSER OPEN until the CitationMap program is complete.")
     return global_driver
 
