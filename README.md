@@ -55,7 +55,7 @@ pip install citation-map
 ```
 ### &#128640; 4 lines to run.
 
-Please copy and paste this to an empty `.py` file (name it something like `run.py`), change your scholar ID, and run it using `python run.py`.
+Please copy and paste this to an empty `.py` file (name it something like `run.py`), replace my scholar ID with yours, and run it using `python run.py`.
 ```python3
 from citation_map import generate_citation_map
 
