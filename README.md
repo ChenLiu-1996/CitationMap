@@ -53,7 +53,7 @@ This is for users familiar with python. Otherwise, please read the [User Guide](
 ```
 pip install citation-map
 ```
-If you want to install the latest version, do `pip install citation-map --upgrade`.
+If you want to install the latest version, run `pip install citation-map --upgrade`.
 
 ### &#128640; 4 lines to run.
 
