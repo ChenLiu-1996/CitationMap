@@ -27,7 +27,7 @@
 
 &#127942; The **world's first free tool** to visualize your Google Scholar citations on a world map.
 
-&#11088; There is **no need to fork** this repo unless you want to make custom changes.
+&#11088; There is **NO NEED to clone or fork** this repo unless you want to make custom changes.
 
 &#128640; It only takes **1 line to install** and **4 lines to run**!
 
