@@ -43,7 +43,7 @@ Research areas: Machine Learning (Manifold Learning, Dynamics Modeling, Multimod
 
 
 ## Purpose
-This is a simple Python tool to generate an HTML citation world map from your Google Scholar ID.
+This is a simple Python tool to generate an HTML citation world map from your [Google Scholar ID](https://scholar.google.com/citations?user=3rDjnykAAAAJ).
 
 It is easy to install (available on [PyPI](https://pypi.org/project/citation-map/)) and easy to use (see the [User Guide](https://github.com/ChenLiu-1996/CitationMap?tab=readme-ov-file#user-guide)).
 
