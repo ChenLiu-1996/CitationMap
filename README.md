@@ -34,7 +34,7 @@
 
 &#127760; A properly installed Chrome browser is required to run this successfully, since CAPTCHA checks will be redirected to a pop-up Chrome browser.
 
-&#128073; If you have trouble running <code>CitationMap</code>, send me your Google Scholar ID via email. I might do it for you when I have time, as long as you **politely** ask for the favor and introduce who you are.
+&#128073; Due to personal reasons, I am no longer able to run `CitationMap` for you if you run into problems. Apologies.
 
 <br>
 
