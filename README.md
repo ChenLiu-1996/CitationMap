@@ -6,6 +6,8 @@
 <strong>CitationMap: A Python Tool to Identify and Visualize Your Google Scholar Citations Around the World</strong> [<a href="https://openreview.net/pdf?id=BqJgCgl1IA">PDF</a>]
 </p>
 
+<p align="center">English | <a href="README.zh.md">中文</a></p>
+
 <div align="center">
 
 [![OpenReview](https://img.shields.io/badge/OpenReview-firebrick)](https://openreview.net/pdf?id=BqJgCgl1IA)
