@@ -164,8 +164,10 @@ def wait_for_profile_content(driver, element_id, requested_url=None):
         # Keep the recovery prompt unobstructed for the entire input wait too.
         with tqdm.external_write_mode():
             if state == 'query_block':
-                print('\n[WARNING] Google is blocking automated queries. '
-                      'This page does not provide a CAPTCHA to solve.')
+                print('\n' + '='*60)
+                print('GOOGLE SCHOLAR ACCESS PAUSED')
+                print('Sorry, Google has flagged requests from your computer or network as suspicious. '
+                      'CitationMap may be sending too many requests.')
             elif state == 'bad_request':
                 print('\n[WARNING] Google rejected this request as malformed or illegal. '
                       'This error page is not a CAPTCHA.')
@@ -175,10 +177,14 @@ def wait_for_profile_content(driver, element_id, requested_url=None):
                 print('Requested Scholar URL: %s' % requested_url)
             print('URL: %s. Page title: %s.' % (driver.current_url, driver.title))
             if state == 'query_block':
-                print('Leave this run paused instead of repeatedly reloading or restarting. '
-                      'No further requests will be sent while waiting for Enter. '
-                      'Continue only after Scholar results are available in the shared Chrome window. '
-                      'There is no guaranteed wait duration; press Ctrl+C to stop.')
+                print('You can press Ctrl+C and rerun later, after Google allows access again. '
+                      'With caching enabled, use the same Scholar ID and cache folder to resume '
+                      'from the last saved page instead of starting over.')
+                print('Keep your cache folder. If caching is disabled (cache_folder=None), '
+                      'discovery progress cannot be resumed after stopping.')
+                print('No further requests will be sent while waiting here. '
+                      'Press Enter only when Scholar results are available in the shared Chrome window.')
+                print('='*60)
             else:
                 print('Check the shared Chrome window. Wait for the page to load, or reload it '
                       'and resolve any access challenge. Keep Chrome open. '
