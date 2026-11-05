@@ -26,7 +26,8 @@ NO_AUTHOR_FOUND_STR = 'No_author_found'
 
 # Observation: the Nominatim package is very bad at getting the geolocation of companies (geolocation of universities are fine).
 # Temporary solution: hard code the geolocations of the companies.
-# NOTE: The headquarter represents the whole company which usually has many offices accross the world.
+# Only bare company names use these headquarters coordinates. Names that include
+# an office or location are sent to the geocoder instead.
 KNOWN_AFFILIATION_DICT = {
     'amazon': ('King County', 'Seattle', 'Washington', 'USA', 47.622721, -122.337176),
     'meta': ('Menlo Park', 'San Mateo', 'California', 'USA', 37.4851, -122.1483),

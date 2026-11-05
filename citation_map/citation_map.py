@@ -138,34 +138,23 @@ def clean_affiliation_names(author_paper_affiliation_tuple_list: List[AuthorPape
     return cleaned_author_paper_affiliation_tuple_list
 
 def fill_known_affiliations(affiliation_name: str) -> Optional[KnownAffiliation]:
-    '''
-    If the affiliation is known, return its geolocation.
-    If not, return None.
-    The reason we have this function is taht geolocator may return hilarious results,
-    such as putting the company Amazon in Amazon rain forest.
-    NOTE: This is a temporal fix. Can be replaced by smarter natural language parsers.
-    '''
-    for key in KNOWN_AFFILIATION_DICT:
-        if key in affiliation_name.lower():
-            return KNOWN_AFFILIATION_DICT[key]
-    return None
+    """Use headquarters coordinates only for an unqualified company name."""
+    # A name such as "Microsoft Research Cambridge" may describe another office.
+    # Send those longer names to the geocoder instead of forcing headquarters.
+    name = ' '.join(affiliation_name.split()).casefold()
+    return KNOWN_AFFILIATION_DICT.get(name)
 
 def affiliation_invalid(affiliation_name: str) -> bool:
-    '''
-    Check if the affiliation is invalid.
-    Typical invalid affiliation contains non-affiliation words, such as 'computer science'.
-    Invalid affiliations will waste time in geolocator.geocode(affiliation_name).
-    NOTE: This is a temporal fix. Can be replaced by smarter natural language parsers.
-    '''
+    """Skip empty affiliations and standalone generic descriptions."""
     invalid_affiliation_set = {
         NO_AUTHOR_FOUND_STR.lower(),
         'computer', 'computer science', 'electrical', 'engineering', 'researcher',
         'scholar', 'inc.', 'school', 'department', 'student', 'candidate', 'professor', 'faculty', 'associate'
     }
-    for key in invalid_affiliation_set:
-        if key in affiliation_name.lower():
-            return True
-    return False
+    # Reject "school" alone, but keep names such as "Harvard Medical School".
+    # Substring filtering also discarded real universities containing engineering.
+    name = ' '.join(affiliation_name.split()).casefold()
+    return not name or name in invalid_affiliation_set
 
 def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[AuthorPaperAffiliation],
                                 max_attempts: int = 3,
