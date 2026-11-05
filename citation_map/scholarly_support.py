@@ -8,6 +8,7 @@ parsed profiles or ask the coordinator for browser assistance; they never launch
 browsers or read terminal input. No installed scholarly code is patched.
 """
 import random
+import os
 import time
 import threading
 from collections import deque
@@ -49,7 +50,14 @@ def get_driver():
     if global_driver is None:
         options = webdriver.ChromeOptions()
         options.page_load_strategy = 'eager'
-        global_driver = webdriver.Chrome(options=options)
+        # The optional web pilot runs Chrome in a Selenium container so visitors
+        # can operate that same session through its noVNC browser view. Ordinary
+        # scripts keep launching local Chrome exactly as before.
+        remote_url = os.environ.get('CITATION_MAP_SELENIUM_URL')
+        if remote_url:
+            global_driver = webdriver.Remote(command_executor=remote_url, options=options)
+        else:
+            global_driver = webdriver.Chrome(options=options)
         global_driver.set_page_load_timeout(30)
         print('[INFO] Shared Chrome window opened. Keep it open for CAPTCHA challenges.')
     return global_driver
