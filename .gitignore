@@ -13,3 +13,12 @@ data
 **/*.npz
 **/*.csv
 **/*.html
+
+# Local build products and publishing configuration
+.DS_Store
+.pypirc
+build/
+dist/
+*.egg-info/
+cache/
+friend_results/
