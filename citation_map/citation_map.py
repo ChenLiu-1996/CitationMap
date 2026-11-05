@@ -1,96 +1,113 @@
 # Copyright (c) 2024 Chen Liu
 # All rights reserved.
-import folium
-import itertools
-import pandas as pd
+import json
 import os
 import pickle
-import pycountry
-import re
 import random
+import re
 import time
+from functools import partial
+from typing import Any, List, Optional, Tuple, Union
 
+import folium
+import pandas as pd
+import pycountry
+from geopy.adapters import RequestsAdapter
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+from geopy.extra.rate_limiter import RateLimiter
 from geopy.geocoders import Nominatim
-from multiprocessing import Pool
-from scholarly import scholarly, ProxyGenerator
 from tqdm import tqdm
-from typing import Any, List, Tuple, Optional
 
-from .scholarly_support import get_citing_author_ids_and_citing_papers, get_organization_name, NO_AUTHOR_FOUND_STR, KNOWN_AFFILIATION_DICT
+from .scholarly_support import (
+    KNOWN_AFFILIATION_DICT,
+    NO_AUTHOR_FOUND_STR,
+    get_author_profile,
+    get_citing_author_ids_and_citing_papers,
+    get_organization_name,
+    get_publication_citation_links,
+    iter_author_profiles,
+)
+
+# Name the existing tuple layouts without changing the cache or CSV formats.
+# The first field is a Scholar ID during discovery and a name after profile lookup.
+CitingAuthorPaper = Tuple[str, str, str]
+AuthorPaperAffiliation = Tuple[str, str, str, str]
+# CSV reloads can represent missing fields as NaN, while fresh rows use empty strings.
+LocationValue = Union[str, float, None]
+GeocodedCitation = Tuple[
+    str, str, str, str,
+    LocationValue, LocationValue, LocationValue,
+    LocationValue, LocationValue, LocationValue,
+]
+KnownAffiliation = Tuple[str, str, str, str, float, float]
 
 
-def find_all_citing_authors(scholar_id: str, num_processes: int = 16) -> List[Tuple[str]]:
+def find_all_citing_authors(scholar_id: str) -> List[CitingAuthorPaper]:
     '''
     Step 1. Find all publications of the given Google Scholar ID.
     Step 2. Find all citing authors.
     '''
-    # Find Google Scholar Profile using Scholar ID.
-    author = scholarly.search_author_id(scholar_id)
-    author = scholarly.fill(author, sections=['publications'])
-    publications = author['publications']
-    print('Author profile found, with %d publications.\n' % len(publications))
+    # Previously this used scholarly.search_author_id(), scholarly.fill(author),
+    # and scholarly.fill(publication) to obtain citation IDs. Read titles and
+    # "cited by" links directly from Chrome instead: the manual CAPTCHA flow is
+    # then visible, and separate publication-metadata requests are unnecessary.
+    # Discovery stays sequential because it uses the shared browser.
+    publications = get_publication_citation_links(scholar_id)
+    print('Found %d publication citation links.\n' % len(publications))
+    entries = []
+    for citation_url, cited_title in tqdm(publications, desc='Finding citing authors and papers',
+                                          total=len(publications)):
+        for author_id, citing_title in get_citing_author_ids_and_citing_papers(citation_url):
+            entries.append((author_id, citing_title, cited_title))
+    return entries
 
-    # Fetch metadata for all publications.
-    if isinstance(num_processes, int) and num_processes > 1:
-        with Pool(processes=num_processes) as pool:
-            all_publications = list(tqdm(pool.imap(__fill_publication_metadata, publications),
-                                         desc='Filling metadata for your %d publications' % len(publications),
-                                         total=len(publications)))
-    else:
-        all_publications = []
-        for pub in tqdm(publications,
-                        desc='Filling metadata for your %d publications' % len(publications),
-                        total=len(publications)):
-            all_publications.append(__fill_publication_metadata(pub))
+def find_all_citing_affiliations(all_citing_author_paper_tuple_list: List[CitingAuthorPaper],
+                                 num_processes: int = 8,
+                                 affiliation_conservative: bool = False,
+                                 progress_cache_path: Optional[str] = None) -> List[AuthorPaperAffiliation]:
+    """Find affiliations with HTTP workers and one shared CAPTCHA browser.
 
-    # Convert all publications to Google Scholar publication IDs and paper titles.
-    # This is fast and no parallel processing is needed.
-    all_publication_info = []
-    for pub in all_publications:
-        if 'cites_id' in pub:
-            for cites_id in pub['cites_id']:
-                pub_title = pub['bib']['title']
-                all_publication_info.append((cites_id, pub_title))
+    num_processes controls HTTP concurrency, not the number of Chrome windows.
+    Successful lookups (including profiles without affiliations) are checkpointed.
+    Failed lookups stop the run and remain eligible for retry on the next run.
+    """
+    lookup = (__affiliations_from_authors_conservative if affiliation_conservative
+              else __affiliations_from_authors_aggressive)
+    profiles = load_cache(progress_cache_path) if progress_cache_path and os.path.exists(progress_cache_path) else {}
+    # One author can cite several publications. Fetch the profile once, then
+    # restore every author/citing-paper/cited-paper relationship below.
+    author_ids = list(dict.fromkeys(entry[0] for entry in all_citing_author_paper_tuple_list))
+    pending = [author_id for author_id in author_ids
+               if author_id != NO_AUTHOR_FOUND_STR and author_id not in profiles]
+    print('Affiliations: %d cached, %d remaining; up to %d HTTP workers, one Chrome window.' % (
+        len(author_ids) - len(pending), len(pending), num_processes))
+    profile_iterator = iter_author_profiles(pending, num_processes=num_processes)
+    try:
+        for author_id, profile in tqdm(profile_iterator, total=len(pending),
+                                       desc='Finding affiliations for unique citing authors'):
+            # The coordinator receives both HTTP and browser results through the
+            # same parser. Passing the profile avoids a second network lookup.
+            # Conservative organization-name lookups also stay on this thread,
+            # so Selenium and terminal prompts never run inside HTTP workers.
+            result = lookup((author_id, '', ''), citing_author=profile)
+            profiles[author_id] = (result[0], result[3]) if result else None
+            if progress_cache_path:
+                save_cache(profiles, progress_cache_path)
+    finally:
+        # Also stop HTTP workers if organization lookup, cache writing, or Ctrl+C
+        # interrupts the consumer before the profile iterator is exhausted.
+        profile_iterator.close()
 
-    # Find all citing authors from all publications.
-    # To best solve CAPTCHA problems, we won't perform parallel processing here.
-    all_citing_author_paper_info_nested = []
-    for pub in tqdm(all_publication_info,
-                    desc='Finding citing authors and papers on your %d publications' % len(all_publication_info),
-                    total=len(all_publication_info)):
-        all_citing_author_paper_info_nested.append(__citing_authors_and_papers_from_publication(pub))
-    all_citing_author_paper_tuple_list = list(itertools.chain(*all_citing_author_paper_info_nested))
-    return all_citing_author_paper_tuple_list
+    entries = []
+    for author_id, citing_paper, cited_paper in all_citing_author_paper_tuple_list:
+        if author_id == NO_AUTHOR_FOUND_STR:
+            entries.append((NO_AUTHOR_FOUND_STR, citing_paper, cited_paper, NO_AUTHOR_FOUND_STR))
+        elif profiles[author_id] is not None:
+            name, affiliation = profiles[author_id]
+            entries.append((name, citing_paper, cited_paper, affiliation))
+    return entries
 
-def find_all_citing_affiliations(all_citing_author_paper_tuple_list: List[Tuple[str]],
-                                 num_processes: int = 16,
-                                 affiliation_conservative: bool = False):
-    '''
-    Step 3. Find all citing affiliations.
-    '''
-    if affiliation_conservative:
-        __affiliations_from_authors = __affiliations_from_authors_conservative
-    else:
-        __affiliations_from_authors = __affiliations_from_authors_aggressive
-
-    # Find all citing insitutions from all citing authors.
-    if num_processes > 1 and isinstance(num_processes, int):
-        with Pool(processes=num_processes) as pool:
-            author_paper_affiliation_tuple_list = list(tqdm(pool.imap(__affiliations_from_authors, all_citing_author_paper_tuple_list),
-                                                            desc='Finding citing affiliations from %d citing authors' % len(all_citing_author_paper_tuple_list),
-                                                            total=len(all_citing_author_paper_tuple_list)))
-    else:
-        author_paper_affiliation_tuple_list = []
-        for author_and_paper in tqdm(all_citing_author_paper_tuple_list,
-                                     desc='Finding citing affiliations from %d citing authors' % len(all_citing_author_paper_tuple_list),
-                                     total=len(all_citing_author_paper_tuple_list)):
-            author_paper_affiliation_tuple_list.append(__affiliations_from_authors(author_and_paper))
-
-    # Filter empty items.
-    author_paper_affiliation_tuple_list = [item for item in author_paper_affiliation_tuple_list if item]
-    return author_paper_affiliation_tuple_list
-
-def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]]) -> List[Tuple[str]]:
+def clean_affiliation_names(author_paper_affiliation_tuple_list: List[AuthorPaperAffiliation]) -> List[AuthorPaperAffiliation]:
     '''
     Optional Step. Clean up the names of affiliations from the authors' affiliation tab on their Google Scholar profiles.
     NOTE: This logic is very naive. Please send an issue or pull request if you have any idea how to improve it.
@@ -120,7 +137,7 @@ def clean_affiliation_names(author_paper_affiliation_tuple_list: List[Tuple[str]
                     cleaned_author_paper_affiliation_tuple_list.append((author_name, citing_paper_title, cited_paper_title, cleaned_affiliation))
     return cleaned_author_paper_affiliation_tuple_list
 
-def fill_known_affiliations(affiliation_name: str) -> Optional[str]:
+def fill_known_affiliations(affiliation_name: str) -> Optional[KnownAffiliation]:
     '''
     If the affiliation is known, return its geolocation.
     If not, return None.
@@ -150,84 +167,70 @@ def affiliation_invalid(affiliation_name: str) -> bool:
             return True
     return False
 
-def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Tuple[str]], max_attempts: int = 3) -> List[Tuple[str]]:
-    '''
-    Step 4: Convert affiliations in plain text to Geocode.
-    '''
-    coordinates_and_info = []
-    # NOTE: According to the Nominatim Usage Policy (https://operations.osmfoundation.org/policies/nominatim/),
-    # we are explicitly asked not to submit bulk requests on multiple threads.
-    # Therefore, we will keep it to a loop instead of multiprocessing.
-    geolocator = Nominatim(user_agent='citation_mapper')
+def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[AuthorPaperAffiliation],
+                                max_attempts: int = 3,
+                                progress_cache_path: Optional[str] = None) -> List[GeocodedCitation]:
+    """Geocode unique affiliations sequentially, caching each completed lookup.
 
-    # Find unique affiliations and record their corresponding entries.
+    Ctrl+C propagates normally. Transient failures are retried but not cached;
+    unresolved entries remain in the CSV with empty location fields.
+    """
+    if not isinstance(max_attempts, int) or max_attempts < 1:
+        raise ValueError('max_attempts must be a positive integer')
+    cached = load_cache(progress_cache_path) if progress_cache_path and os.path.exists(progress_cache_path) else {}
     affiliation_map = {}
-    for entry_idx, (_, _, _, affiliation_name) in enumerate(author_paper_affiliation_tuple_list):
-        if affiliation_name not in affiliation_map.keys():
-            affiliation_map[affiliation_name] = [entry_idx]
-        else:
-            affiliation_map[affiliation_name].append(entry_idx)
+    for entry in author_paper_affiliation_tuple_list:
+        affiliation_map.setdefault(entry[3], []).append(entry)
 
-    num_total_affiliations = len(affiliation_map)
+    coordinates_and_info = []
     num_located_affiliations = 0
-    for affiliation_name in tqdm(affiliation_map,
-                                 desc='Finding geographic coordinates from %d unique citing affiliations in %d entries' % (
-                                     len(affiliation_map), len(author_paper_affiliation_tuple_list)),
-                                 total=len(affiliation_map)):
-        if affiliation_invalid(affiliation_name):
-            # If an affiliation is invalid, we will not run geolocator on it.
-            # However, we still record it in the csv, so that the user can choose to manually correct it.
-            corresponding_entries = affiliation_map[affiliation_name]
-            for entry_idx in corresponding_entries:
-                author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
-                                            '', '', '', '', '', ''))
-        else:
-            # Directly enter information if the affiliation is known.
-            geo_location = fill_known_affiliations(affiliation_name)
-            if geo_location is not None:
-                county, city, state, country, latitude, longitude = geo_location
-                corresponding_entries = affiliation_map[affiliation_name]
-                for entry_idx in corresponding_entries:
-                    author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                    coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
-                                                latitude, longitude, county, city, state, country))
-                # This location is successfully recorded.
+    # Disable hidden transport retries; keep all retries explicit and interruptible.
+    with Nominatim(user_agent='citation-map (https://github.com/ChenLiu-1996/CitationMap)',
+                   timeout=10, adapter_factory=partial(RequestsAdapter, max_retries=0)) as geolocator:
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1.1,
+                              max_retries=0, swallow_exceptions=False)
+        for affiliation_name, entries in tqdm(affiliation_map.items(),
+                                              desc='Finding geographic coordinates for unique affiliations',
+                                              total=len(affiliation_map)):
+            key = ' '.join(affiliation_name.split()).casefold()
+            fields = None
+            if affiliation_invalid(affiliation_name):
+                pass
+            elif fill_known_affiliations(affiliation_name) is not None:
+                county, city, state, country, latitude, longitude = fill_known_affiliations(affiliation_name)
+                fields = (latitude, longitude, county, city, state, country)
+            elif key in cached:
+                fields = cached[key]
+            else:
+                for attempt in range(max_attempts):
+                    try:
+                        location = geocode(affiliation_name, addressdetails=True, language='en')
+                    except (GeocoderTimedOut, GeocoderUnavailable) as error:
+                        tqdm.write('Geocoding attempt %d/%d failed for %s: %s' % (
+                            attempt + 1, max_attempts, affiliation_name, error))
+                        if attempt + 1 < max_attempts:
+                            time.sleep(2 ** attempt)
+                        continue
+                    # Address details in the forward response eliminate a reverse request.
+                    if location is not None:
+                        address = location.raw.get('address', {})
+                        fields = (location.latitude, location.longitude, address.get('county', ''),
+                                  address.get('city') or address.get('town') or address.get('village', ''),
+                                  address.get('state', ''), address.get('country', ''))
+                    cached[key] = fields  # Also remember successful queries with no match.
+                    if progress_cache_path:
+                        save_cache(cached, progress_cache_path)
+                    break
+            if fields is not None:
                 num_located_affiliations += 1
             else:
-                for _ in range(max_attempts):
-                    try:
-                        geo_location = geolocator.geocode(affiliation_name)
-                        if geo_location is not None:
-                            # Get the full location metadata that includes county, city, state, country, etc.
-                            location_metadata = geolocator.reverse(str(geo_location.latitude) + ',' + str(geo_location.longitude), language='en')
-                            address = location_metadata.raw['address']
-                            county, city, state, country = None, None, None, None
-                            if 'county' in address:
-                                county = address['county']
-                            if 'city' in address:
-                                city = address['city']
-                            if 'state' in address:
-                                state = address['state']
-                            if 'country' in address:
-                                country = address['country']
-
-                            corresponding_entries = affiliation_map[affiliation_name]
-                            for entry_idx in corresponding_entries:
-                                author_name, citing_paper_title, cited_paper_title, affiliation_name = author_paper_affiliation_tuple_list[entry_idx]
-                                coordinates_and_info.append((author_name, citing_paper_title, cited_paper_title, affiliation_name,
-                                                            geo_location.latitude, geo_location.longitude,
-                                                            county, city, state, country))
-                            # This location is successfully recorded.
-                            num_located_affiliations += 1
-                            break
-                    except:
-                        continue
-    print('\nConverted %d/%d affiliations to Geocodes.' % (num_located_affiliations, num_total_affiliations))
-    coordinates_and_info = [item for item in coordinates_and_info if item is not None]  # Filter out empty entries.
+                fields = ('', '', '', '', '', '')
+            coordinates_and_info.extend(tuple(entry) + tuple(fields) for entry in entries)
+    print('\nConverted %d/%d affiliations to Geocodes.' % (
+        num_located_affiliations, len(affiliation_map)))
     return coordinates_and_info
 
-def export_dict_to_csv(coordinates_and_info: List[Tuple[str]], csv_output_path: str) -> None:
+def export_dict_to_csv(coordinates_and_info: List[GeocodedCitation], csv_output_path: str) -> None:
     '''
     Step 5.1: Export csv file recording citation information.
     '''
@@ -240,95 +243,89 @@ def export_dict_to_csv(coordinates_and_info: List[Tuple[str]], csv_output_path: 
     citation_df.to_csv(csv_output_path)
     return
 
-def read_csv_to_dict(csv_path: str) -> None:
+def read_csv_to_dict(csv_path: str) -> List[GeocodedCitation]:
     '''
     Step 5.1: Read csv file recording citation information.
-    Only relevant if `read_from_csv` is True.
+    Used when `parse_csv` is True. Returns tuple rows, despite the legacy function name.
     '''
 
     citation_df = pd.read_csv(csv_path, index_col=0)
     coordinates_and_info = list(citation_df.itertuples(index=False, name=None))
     return coordinates_and_info
 
-def create_map(coordinates_and_info: List[Tuple[str]], pin_colorful: bool = True):
+def create_map(coordinates_and_info: List[GeocodedCitation], pin_colorful: bool = True) -> folium.Map:
     '''
     Step 5.2: Create the Citation World Map.
 
     For authors under the same affiliations, they will be displayed in the same pin.
     '''
-    citation_map = folium.Map(location=[20, 0], zoom_start=2)
+    # Embed public-domain Natural Earth geometry instead of requesting remote
+    # raster tiles. Directly opened HTML files may lack the Referer required by
+    # tile providers, which can produce a 403 image behind otherwise valid pins.
+    # Keep this data bundled in the wheel/sdist: generation must not download it.
+    citation_map = folium.Map(location=[20, 0], zoom_start=2, tiles=None)
+    citation_map.get_root().header.add_child(folium.Element(
+        '<style>.leaflet-container { background: #dcecf4; }</style>'))
+    with open(os.path.join(os.path.dirname(__file__), 'world_countries.geojson'),
+              encoding='utf-8') as source:
+        countries = json.load(source)
+    folium.GeoJson(
+        countries,
+        name='World countries',
+        style_function=lambda _feature: {
+            'fillColor': '#f6f3eb', 'color': '#98a6af',
+            'weight': 0.6, 'fillOpacity': 1,
+        },
+        tooltip=folium.GeoJsonTooltip(fields=['name'], labels=False),
+        attribution='Made with <a href="https://www.naturalearthdata.com/">Natural Earth</a>',
+    ).add_to(citation_map)
 
-    # Find unique affiliations and record their corresponding entries.
+    # Group rows once. Both pin styles share the same location checks and popup
+    # construction; only the optional icon color differs.
     affiliation_map = {}
-    for entry_idx, (_, _, _, affiliation_name, _, _, _, _, _, _) in enumerate(coordinates_and_info):
-        if affiliation_name == NO_AUTHOR_FOUND_STR:
-            continue
-        elif affiliation_name not in affiliation_map.keys():
-            affiliation_map[affiliation_name] = [entry_idx]
-        else:
-            affiliation_map[affiliation_name].append(entry_idx)
+    for entry in coordinates_and_info:
+        affiliation_name = entry[3]
+        if affiliation_name != NO_AUTHOR_FOUND_STR:
+            affiliation_map.setdefault(affiliation_name, []).append(entry)
 
-    if pin_colorful:
-        colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred',
-                  'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
-                  'darkpurple', 'pink', 'lightblue', 'lightgreen',
-                  'gray', 'black', 'lightgray']
-        for affiliation_name in affiliation_map:
-            color = random.choice(colors)
-            corresponding_entries = affiliation_map[affiliation_name]
-            author_name_list = []
-            location_valid = True
-            for entry_idx in corresponding_entries:
-                author_name, _, _, _, lat, lon, _, _, _, _  = coordinates_and_info[entry_idx]
-                if pd.isna(lat) or pd.isna(lon) or lat == '' or lon == '':
-                    location_valid = False
-                author_name_list.append(author_name)
-            if location_valid:
-                folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list)),
-                            icon=folium.Icon(color=color)).add_to(citation_map)
-    else:
-        for affiliation_name in affiliation_map:
-            corresponding_entries = affiliation_map[affiliation_name]
-            author_name_list = []
-            location_valid = True
-            for entry_idx in corresponding_entries:
-                author_name, _, _, _, lat, lon, _, _, _, _  = coordinates_and_info[entry_idx]
-                if pd.isna(lat) or pd.isna(lon) or lat == '' or lon == '':
-                    location_valid = False
-                author_name_list.append(author_name)
-            if location_valid:
-                folium.Marker([lat, lon], popup='%s (%s)' % (affiliation_name, ' & '.join(author_name_list))).add_to(citation_map)
+    colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred',
+              'lightred', 'beige', 'darkblue', 'darkgreen', 'cadetblue',
+              'darkpurple', 'pink', 'lightblue', 'lightgreen',
+              'gray', 'black', 'lightgray']
+    for affiliation_name, entries in affiliation_map.items():
+        # A manually edited CSV may contain blank or NaN coordinates. Preserve
+        # the existing rule: do not draw a group if any of its rows lacks a location.
+        if any(pd.isna(entry[4]) or pd.isna(entry[5]) or entry[4] == '' or entry[5] == ''
+               for entry in entries):
+            continue
+        author_names = [entry[0] for entry in entries]
+        latitude, longitude = entries[-1][4:6]
+        icon = folium.Icon(color=random.choice(colors)) if pin_colorful else None
+        folium.Marker(
+            [latitude, longitude],
+            popup='%s (%s)' % (affiliation_name, ' & '.join(author_names)),
+            icon=icon,
+        ).add_to(citation_map)
     return citation_map
 
-def count_citation_stats(coordinates_and_info: List[Tuple[str]]) -> List[int]:
-    '''
-    Count the number of citing authors, affiliations and countries.
-    '''
-    unique_author_list, unique_affiliation_list, unique_country_list = set(), set(), set()
-    for (author_name, _, _, affiliation_name, _, _, _, _, _, country) in coordinates_and_info:
+
+def count_citation_stats(coordinates_and_info: List[GeocodedCitation]) -> Tuple[int, int, int]:
+    """Count distinct authors, affiliations, and countries in the output rows."""
+    unique_authors, unique_affiliations, unique_countries = set(), set(), set()
+    for author_name, _, _, affiliation_name, _, _, _, _, _, country in coordinates_and_info:
         if affiliation_name == NO_AUTHOR_FOUND_STR:
             continue
-        unique_author_list.add(author_name)
-        unique_affiliation_list.add(affiliation_name)
-        unique_country_list.add(country)
-        num_authors, num_affiliations, num_countries = \
-            len(unique_author_list), len(unique_affiliation_list), len(unique_country_list)
-    return num_authors, num_affiliations, num_countries
+        unique_authors.add(author_name)
+        unique_affiliations.add(affiliation_name)
+        unique_countries.add(country)
+    # Count after the loop so empty or entirely unidentified results return zeros.
+    return len(unique_authors), len(unique_affiliations), len(unique_countries)
 
-def __fill_publication_metadata(pub):
-    time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
-    return scholarly.fill(pub)
 
-def __citing_authors_and_papers_from_publication(cites_id_and_cited_paper: Tuple[str, str]):
-    cites_id, cited_paper_title = cites_id_and_cited_paper
-    citing_paper_search_url = 'https://scholar.google.com/scholar?hl=en&cites=' + cites_id
-    citing_authors_and_citing_papers = get_citing_author_ids_and_citing_papers(citing_paper_search_url)
-    citing_author_paper_info = []
-    for citing_author_id, citing_paper_title in citing_authors_and_citing_papers:
-        citing_author_paper_info.append((citing_author_id, citing_paper_title, cited_paper_title))
-    return citing_author_paper_info
-
-def __affiliations_from_authors_conservative(citing_author_paper_info: str):
+def __affiliations_from_authors_conservative(
+    citing_author_paper_info: CitingAuthorPaper,
+    citing_author: Optional[dict] = None,
+) -> Optional[AuthorPaperAffiliation]:
     '''
     Conservative: only use Google Scholar verified organization.
     This will have higher precision and lower recall.
@@ -337,19 +334,20 @@ def __affiliations_from_authors_conservative(citing_author_paper_info: str):
     if citing_author_id == NO_AUTHOR_FOUND_STR:
         return (NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR)
 
-    time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
-    citing_author = scholarly.search_author_id(citing_author_id)
+    # This replaces scholarly.search_author_id(). The main pipeline supplies an
+    # already-fetched profile; direct helper calls use the shared Chrome window.
+    if citing_author is None:
+        citing_author = get_author_profile(citing_author_id)
 
     if 'organization' in citing_author:
-        try:
-            author_organization = get_organization_name(citing_author['organization'])
-            return (citing_author['name'], citing_paper_title, cited_paper_title, author_organization)
-        except Exception as e:
-            print('[Warning!]', e)
-            return None
+        author_organization = get_organization_name(citing_author['organization'])
+        return (citing_author['name'], citing_paper_title, cited_paper_title, author_organization)
     return None
 
-def __affiliations_from_authors_aggressive(citing_author_paper_info: str):
+def __affiliations_from_authors_aggressive(
+    citing_author_paper_info: CitingAuthorPaper,
+    citing_author: Optional[dict] = None,
+) -> Optional[AuthorPaperAffiliation]:
     '''
     Aggressive: use the self-reported affiliation string from the Google Scholar affiliation panel.
     This will have lower precision and higher recall.
@@ -358,8 +356,10 @@ def __affiliations_from_authors_aggressive(citing_author_paper_info: str):
     if citing_author_id == NO_AUTHOR_FOUND_STR:
         return (NO_AUTHOR_FOUND_STR, citing_paper_title, cited_paper_title, NO_AUTHOR_FOUND_STR)
 
-    time.sleep(random.uniform(1, 5))  # Random delay to reduce risk of being blocked.
-    citing_author = scholarly.search_author_id(citing_author_id)
+    # Preserve the self-reported affiliation text; the fetching transport changed,
+    # while aggressive affiliation selection still uses this same profile field.
+    if citing_author is None:
+        citing_author = get_author_profile(citing_author_id)
     if 'affiliation' in citing_author:
         return (citing_author['name'], citing_paper_title, cited_paper_title, citing_author['affiliation'])
     return None
@@ -393,7 +393,7 @@ def __iscountry(string: str) -> bool:
     except LookupError:
         return False
 
-def __print_author_and_affiliation(author_paper_affiliation_tuple_list: List[Tuple[str]]) -> None:
+def __print_author_and_affiliation(author_paper_affiliation_tuple_list: List[AuthorPaperAffiliation]) -> None:
     __author_affiliation_tuple_list = []
     for author_name, _, _, affiliation_name in sorted(author_paper_affiliation_tuple_list):
         if author_name == NO_AUTHOR_FOUND_STR:
@@ -410,8 +410,10 @@ def __print_author_and_affiliation(author_paper_affiliation_tuple_list: List[Tup
 
 def save_cache(data: Any, fpath: str) -> None:
     os.makedirs(os.path.dirname(fpath), exist_ok=True)
-    with open(fpath, "wb") as fd:
+    temporary_path = fpath + ".tmp"
+    with open(temporary_path, "wb") as fd:
         pickle.dump(data, fd)
+    os.replace(temporary_path, fpath)
 
 def load_cache(fpath: str) -> Any:
     with open(fpath, "rb") as fd:
@@ -423,8 +425,7 @@ def generate_citation_map(scholar_id: str,
                           parse_csv: bool = False,
                           cache_folder: str = 'cache',
                           affiliation_conservative: bool = False,
-                          num_processes: int = 16,
-                          use_proxy: bool = False,
+                          num_processes: int = 8,
                           pin_colorful: bool = True,
                           print_citing_affiliations: bool = True):
     '''
@@ -453,12 +454,9 @@ def generate_citation_map(scholar_id: str,
         If true, we will use a more conservative approach to identify affiliations.
         If false, we will use a more aggressive approach to identify affiliations.
     num_processes: int
-        (default is 16)
-        Number of processes for parallel processing.
-    use_proxy: bool
-        (default is False)
-        If true, we will use a scholarly proxy.
-        It is necessary for some environments to avoid blocks, but it usually makes things slower.
+        (default is 8)
+        Maximum concurrent HTTP affiliation lookups, with one shared CAPTCHA browser.
+        Setting 1 uses sequential browser lookups. Discovery and geocoding remain sequential.
     pin_colorful: bool
         (default is True)
         If true, the location pins will have a variety of colors.
@@ -470,12 +468,6 @@ def generate_citation_map(scholar_id: str,
 
     if not parse_csv:
 
-        if use_proxy:
-            pg = ProxyGenerator()
-            pg.FreeProxies()
-            scholarly.use_proxy(pg)
-            print('Using proxy.')
-
         if cache_folder is not None:
             cache_path = os.path.join(cache_folder, scholar_id, 'all_citing_author_paper_tuple_list.pkl')
         else:
@@ -486,8 +478,7 @@ def generate_citation_map(scholar_id: str,
 
             # NOTE: Step 1. Find all publications of the given Google Scholar ID.
             #       Step 2. Find all citing authors.
-            all_citing_author_paper_tuple_list = find_all_citing_authors(scholar_id=scholar_id,
-                                                                         num_processes=num_processes)
+            all_citing_author_paper_tuple_list = find_all_citing_authors(scholar_id=scholar_id)
             print('A total of %d citing authors recorded.\n' % len(all_citing_author_paper_tuple_list))
             if cache_path is not None and len(all_citing_author_paper_tuple_list) > 0:
                 save_cache(all_citing_author_paper_tuple_list, cache_path)
@@ -500,7 +491,9 @@ def generate_citation_map(scholar_id: str,
             print('A total of %d citing authors loaded.\n' % len(all_citing_author_paper_tuple_list))
 
         if cache_folder is not None:
-            cache_path = os.path.join(cache_folder, scholar_id, 'author_paper_affiliation_tuple_list.pkl')
+            cache_path = os.path.join(cache_folder, scholar_id,
+                                      'author_paper_affiliation_%s.pkl' % (
+                                          'conservative' if affiliation_conservative else 'aggressive'))
         else:
             cache_path = None
 
@@ -511,7 +504,8 @@ def generate_citation_map(scholar_id: str,
             print('Identifying affiliations using the %s approach.' % ('conservative' if affiliation_conservative else 'aggressive'))
             author_paper_affiliation_tuple_list = find_all_citing_affiliations(all_citing_author_paper_tuple_list,
                                                                             num_processes=num_processes,
-                                                                            affiliation_conservative=affiliation_conservative)
+                                                                            affiliation_conservative=affiliation_conservative,
+                                                                            progress_cache_path=cache_path + ".profiles" if cache_path else None)
             print('\nA total of %d citing affiliations recorded.\n' % len(author_paper_affiliation_tuple_list))
             # Take unique tuples.
             author_paper_affiliation_tuple_list = list(set(author_paper_affiliation_tuple_list))
@@ -546,7 +540,9 @@ def generate_citation_map(scholar_id: str,
             __print_author_and_affiliation(author_paper_affiliation_tuple_list)
 
         # NOTE: Step 4. Convert affiliations in plain text to Geocode.
-        coordinates_and_info = affiliation_text_to_geocode(author_paper_affiliation_tuple_list)
+        geocode_cache_path = os.path.join(cache_folder, 'geocodes_v1.pkl') if cache_folder is not None else None
+        coordinates_and_info = affiliation_text_to_geocode(
+            author_paper_affiliation_tuple_list, progress_cache_path=geocode_cache_path)
         # Take unique tuples.
         coordinates_and_info = sorted(list(set(coordinates_and_info)))
 
@@ -580,7 +576,6 @@ if __name__ == '__main__':
                           parse_csv=False,
                           cache_folder='cache',
                           affiliation_conservative=True,
-                          num_processes=16,
-                          use_proxy=False,
+                          num_processes=8,
                           pin_colorful=True,
                           print_citing_affiliations=True)

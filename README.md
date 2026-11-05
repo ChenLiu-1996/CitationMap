@@ -71,10 +71,20 @@ if __name__ == '__main__':
     generate_citation_map(scholar_id)
 ```
 
+**Important: keep the pop-up Chrome window open until the program finishes.** CitationMap uses this shared browser to let you solve Google Scholar CAPTCHA challenges manually. When the terminal prompts you:
+
+1. Switch to the pop-up Chrome window and complete the CAPTCHA.
+2. **Leave that browser window open. Do not close it after solving the CAPTCHA.**
+3. Return to the terminal and **press Enter** so CitationMap can continue.
+
+Repeat these steps if another CAPTCHA appears.
+
 ## Expected Outcome
 You will be given an **HTML file** as the output of the script.
 
 If you open it on a browser, you will see your own version of the following citation world map.
+
+Open the HTML file in your browser with an internet connection. You can zoom and pan, hover over countries to see their names, and click pins to see citing authors and affiliations.
 
 <img src = "assets/citation_world_map.png" width=800>
 
@@ -109,8 +119,8 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
 ```
 
 ## News
-**[Asking for advice]**
-1. This is my first time dealing with webscraping/crawling. Users have reported stability issues, and I suspect the major problems are (1) being caught by CAPTCHA or robot check, and (2) being flagged for blacklist by Google Scholar. If you are experienced in these areas and have good advice, I would highly appreciate a **GitHub issue or a pull request**.
+
+[Nov 5, 2026] Version 6.0 update >>> Reworked Google Scholar fetching with concurrent HTTP affiliation lookups and one shared browser for manual CAPTCHA solving. Added resumable affiliation lookups, cached geocoding with fewer requests and working Ctrl+C interruption, and an embedded Natural Earth world map that avoids blocked tile images. Improved citation pagination and handling of empty results. See the [Changelog](#changelog) for details.
 
 [Oct 14, 2025] Version 5.0 released >>> Better handling of CAPTCHA.
 
@@ -152,6 +162,10 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
 
     Note that in Version 4.0, we will cache the results before identifying affiliations. So if you want to rerun the same author from scratch, you need to delete the cache (default location is 'cache').
 
+    Affiliation lookups use up to `num_processes` concurrent HTTP workers and one shared visible Chrome window, with eager loading and explicit content checks. Workers retain a 1–5 second delay before requests. When HTTP access fails, new requests pause while in-flight requests finish; the shared browser then handles affected profiles. When prompted, solve the CAPTCHA in that window and press Enter in the terminal. Updated browser cookies are used in subsequent HTTP batches. Repeated HTTP rejection falls back to sequential reads in the same browser. Setting `num_processes=1` uses sequential browser lookups throughout.
+
+    Each unique citing author is fetched once, and completed profile lookups are saved after every author. If the run stops, rerun the same command to resume. Aggressive and conservative affiliation caches are stored separately; the existing citation discovery cache is reused. Citation discovery and geocoding remain sequential. Geocoding results are cached in `cache/geocodes_v1.pkl` by default and shared across Scholar IDs; set `cache_folder=None` to disable disk caching.
+
     More input arguments are shown in [the demo script](https://github.com/ChenLiu-1996/CitationMap/blob/main/demo/demo.py).
 
     You can take a look at the input arguments (listed below) of the function `generate_citation_map` in case you need those functionalities.
@@ -180,12 +194,9 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
         If true, we will use a more conservative approach to identify affiliations.
         If false, we will use a more aggressive approach to identify affiliations.
     num_processes: int
-        (default is 16)
-        Number of processes for parallel processing.
-    use_proxy: bool
-        (default is False)
-        If true, we will use a scholarly proxy.
-        It is necessary for some environments to avoid blocks, but it usually makes things slower.
+        (default is 8)
+        Maximum concurrent HTTP affiliation workers, with one shared CAPTCHA browser.
+        Setting 1 uses sequential browser lookups. Discovery and geocoding remain sequential.
     pin_colorful: bool
         (default is True)
         If true, the location pins will have a variety of colors.
@@ -197,50 +208,40 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
 
 ## Limitations
 
-1. This tool is purely based on Google Scholar. As a result, you are expected to have underestimations due to reasons such as:
-    - Your Google Scholar profile is not up-to-date.
-    - Some papers citing you are not indexed by Google Scholar.
-    - Some authors citing you do not have Google Scholar profiles.
-    - Some authors citing you do not report their affiliations.
-2. Webscraping is performed, and CAPTCHA or robot check can often get us, especially if we crawl frequently. This is more often seen in highly cited users. Unless you are blocked by Google Scholar, at worst you will end up with missing several citing authors, which is not likely a huge deal for highly cited users anyways.
-3. Affiliation identification and geolocating issues. This is a joint effect between affiliation identification and geolocating. The number of citing affiliations will be:
-    - Underestimated if some affiliations are not found by `geopy.geocoders`.
-    - Underestimated if we experience communication errors with `geopy.geocoders`.
-    - (Aggressive approach only) Overestimated if non-affiliation phrases are incorrectly identified as locations by `geopy.geocoders`.
-    - (Conservative approach only) Underestimated if the citer did not verify with an email address under a matching affiliation domain.
-    - (Conservative approach only) Underestimated because all non-primary (with verified email address) affiliations are ignored.
+Version 6.0 adds shared manual CAPTCHA handling, resumable affiliation lookups, cached geocoding, and an embedded map background. These changes improve recovery and remove the dependency on online map tiles, but the following limitations remain.
 
-    **Please raise an issue or submit a pull request if you have some good idea to better process the affiliation string. Note that currently I am not considering any paid service or tools that pose extra burden on the users, such as GPT API.**
-
+1. **Coverage depends on Google Scholar.** Missing or outdated publications, unindexed citing papers, authors without linked Scholar profiles, and missing affiliations can leave citations unrepresented. Affiliations come from the authors' profiles when they are fetched, not necessarily from the institutions listed on the citing papers when they were published. The map is an approximate view of citation reach, not a complete historical record.
+2. **Manual CAPTCHA handling does not guarantee access.** Challenges are handled in one visible Chrome window, but Google Scholar can still block requests or change its page structure. Browser verification may not restore HTTP access; repeated HTTP failures trigger sequential browser reads. If the browser cannot read a required page, the run stops with an error. Higher HTTP concurrency can increase blocking, and the fallback can be slow.
+3. **Affiliation identification is approximate.** Aggressive mode uses self-reported text and rule-based cleaning, which can split institutions incorrectly, retain unrelated phrases, or discard valid affiliations. Conservative mode uses the linked Scholar organization and can miss secondary affiliations or institutions without a recognized organization link. Predefined company locations represent headquarters rather than each author's actual office.
+4. **Geocoding can be incomplete or inaccurate.** Nominatim may return no match, the wrong institution, or incomplete address details. Lookups remain sequential and rate-limited; timeouts, bounded retries, and caching reduce repeated work but do not guarantee fast first runs. Unresolved rows are retained in the CSV with empty location fields and do not produce map pins. You can correct those rows, including their coordinates, and regenerate the HTML with `parse_csv=True`.
+5. **Caches and the embedded map have practical limits.** Cached affiliations can become outdated, and cached geocoding queries with no match are reused until their cache is cleared. Completed affiliation and geocoding lookups are checkpointed when disk caching is enabled, but citation discovery is cached only after that stage finishes, so interrupted discovery can restart. The embedded background shows country boundaries rather than street details. It makes no tile requests, but Folium's JavaScript and CSS still load from external CDNs, so the HTML is not fully offline.
 
 ## Debug
 
-1. `MaxTriesExceededException` or `Exception: Failed to fetch the Google Scholar page` or (`[WARNING!] Blocked by CAPTCHA or robot check` for all entries).
-
-    - From my experience, these are good indicators that your IP address is blocked by Google Scholar due to excessive crawling (using the `scholarly` package).
-    - One hot fix I found was to hop on a University VPN and run again. I typically experience this error after running the tool twice, and I need to disconnect and reconnect my VPN to "unblock" myself.
-    - In case this does not help, you can try to change IP adress and reduce the number of processes (e.g., setting `num_processes=1`).
-    - If you get `[WARNING!] Blocked by CAPTCHA or robot check` no more than several times, it's not a big deal especially if you have many citing authors.
-
-2. `An attempt has been made to start a new process before the current process has finished its bootstrapping phase.`
-
-    - I believe this is because you did not protect your main function with `if __name__ == '__main__'`. You can take a look at the recommended script again.
-    - If this still does not help, you might want to write your script slightly differently. Credit to [dk-liang](https://github.com/dk-liang) in [Issue #4](https://github.com/ChenLiu-1996/CitationMap/issues/4#issuecomment-2257572672).
-      ```python3
-      from citation_map import generate_citation_map
-
-      def main():
-          # This is my Google Scholar ID. Replace this with your ID.
-          scholar_id = '3rDjnykAAAAJ'
-          generate_citation_map(scholar_id)
-
-      if __name__ == '__main__':
-          import multiprocessing
-          multiprocessing.freeze_support()
-          main()
-      ```
+1. **CAPTCHA prompts or repeated HTTP lookup failures.** Keep the shared Chrome window open, solve the displayed challenge, and press Enter in the terminal when prompted. The program may fall back to sequential browser reads. If access still fails, stop the run and try again later with `num_processes=1`. Completed affiliation and geocoding checkpoints are reused when disk caching is enabled; CAPTCHA handling does not guarantee that Google Scholar will grant access.
+2. **Cannot read a profile, publication list, or citation results; repeated pagination errors.** Check the page shown in Chrome for an access block or an unavailable profile. If the expected page is visible but parsing still fails, Google Scholar may have changed its markup; report the error and the relevant page URL. Unreadable or repeated pages raise errors rather than being treated as successful empty results.
+3. **Blank locations or slow geocoding.** Check the affiliation text in the CSV. Unresolved entries retain empty coordinate fields for manual correction. Ctrl+C can stop geocoding; rerunning reuses completed geocoding lookups when caching is enabled. To retry a cached no-match result, remove the corresponding geocoding cache (`cache/geocodes_v1.pkl` by default) and rerun, or correct the CSV and use `parse_csv=True`.
+4. **An older HTML map still shows blocked tile images.** Regenerate it from the existing CSV using Version 6.0 and `parse_csv=True`. The current background embeds Natural Earth boundaries and makes no map-tile requests. A completely blank map can still result from unavailable external JavaScript or CSS; check your browser's network errors.
 
 ## Changelog
+
+<details>
+<summary>Version 6.0 (Nov 4, 2026)</summary>
+<br>
+
+1. **Reworked Google Scholar fetching.** Publication discovery now reads titles and citation links directly from the Google Scholar profile in Chrome, replacing `scholarly.search_author_id()` and `scholarly.fill()` calls. Author profiles are parsed directly from browser or HTTP responses. The aggressive and conservative affiliation options remain available.
+2. **One shared browser for CAPTCHA challenges.** `num_processes` now controls concurrent HTTP affiliation workers, without opening a browser for every worker. New HTTP requests pause when browser assistance is needed, and manual CAPTCHA challenges are handled in one visible Chrome window. Subsequent HTTP batches receive updated browser cookies. If HTTP access continues failing, the remaining profiles are read sequentially in the same browser. Chrome uses eager loading with explicit content checks.
+3. **Resumable affiliation lookups.** Each unique citing author is looked up once per run, and completed results are checkpointed after every author. Rerunning resumes from saved profiles. Aggressive and conservative affiliation results use separate caches, while every citing-paper/cited-paper relationship is preserved.
+4. **Fewer geocoding requests and reusable results.** Coordinates and address details now come from one forward lookup instead of separate forward and reverse requests. Completed lookups, including queries with no match, are cached across runs and Scholar IDs. Requests remain sequential and rate-limited, with explicit timeouts and bounded retries for transient failures. Unresolved entries remain in the CSV for manual correction. Fixed the bare exception handler that swallowed Ctrl+C during geocoding.
+5. **Removed obsolete options and dependencies.** Removed the ineffective `use_proxy` argument and the `scholarly` dependency. Removed the unused `num_processes` argument from sequential publication discovery. `num_processes` defaults to 8 and controls HTTP affiliation workers only. Existing scripts should remove `use_proxy` from their calls. Transferring browser cookies does not guarantee HTTP access, and live performance improvements have not been benchmarked.
+
+**Map background update (Nov 5, 2026).** Replaced remote OpenStreetMap tiles with bundled, public-domain Natural Earth country boundaries embedded in the HTML. This removes map-tile requests and their 403 access-blocked images while preserving interactive citation pins, popups, panning, and zooming. No tile API key or local web server is required. JavaScript and CSS still load from external CDNs.
+
+**Correctness and readability update (Nov 5, 2026).** Citation pagination now reads the next link from each newly loaded page and stops with an error on repeated links or blocked/unrecognized result pages. Empty citation results now produce zero statistics. Both marker styles share one drawing loop. Added descriptive tuple type aliases without changing cache or CSV layouts, removed the unused browser `profile` argument, and removed a duplicated delay during organization lookup.
+
+</details>
+
+
 <details>
 <summary>Version 5.0 (Oct 14, 2025)</summary>
 <br>
@@ -324,7 +325,7 @@ I tried to use multiprocessing, but unfortunately the excessive visits get me bl
 </details>
 
 ## Dependencies
-Dependencies (`scholarly`, `geopy`, `folium`, `tqdm`, `requests`, `bs4`, `pycountry`, `pandas`) are already taken care of when you install via pip.
+Dependencies (`geopy`, `folium`, `tqdm`, `selenium`, `bs4`, `pycountry`, `pandas`) are already taken care of when you install via pip.
 
 ## Acknowledgements
 This script was written under the assistance of ChatGPT-4o, but of course after intense debugging.

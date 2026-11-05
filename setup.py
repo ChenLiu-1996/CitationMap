@@ -5,18 +5,19 @@ with open('README.md') as f:
 
 setup(
     name='citation-map',
-    version='5.0',
+    version='6.0',
     license='CC BY-NC-SA',
     author='Chen Liu',
     author_email='chen.liu.cl2482@yale.edu',
     packages={'citation_map'},
+    package_data={'citation_map': ['world_countries.geojson']},
     # package_dir={'': ''},
     description='A simple tool to generate your Google Scholar citation world map.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/ChenLiu-1996/CitationMap',
     keywords='citation map, citation world map, google scholar',
-    install_requires=['scholarly', 'geopy', 'folium', 'tqdm', 'selenium', 'bs4', 'pycountry', 'pandas'],
+    install_requires=['geopy', 'folium', 'tqdm', 'selenium', 'bs4', 'pycountry', 'pandas'],
     classifiers=[
     'Development Status :: 3 - Alpha',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers
