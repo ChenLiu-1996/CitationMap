@@ -226,18 +226,14 @@ Version 6.0 adds shared manual CAPTCHA handling, resumable affiliation lookups, 
 ## Changelog
 
 <details>
-<summary>Version 6.0 (Nov 4, 2026)</summary>
+<summary>Version 6.0 (Nov 5, 2026)</summary>
 <br>
 
-1. **Reworked Google Scholar fetching.** Publication discovery now reads titles and citation links directly from the Google Scholar profile in Chrome, replacing `scholarly.search_author_id()` and `scholarly.fill()` calls. Author profiles are parsed directly from browser or HTTP responses. The aggressive and conservative affiliation options remain available.
-2. **One shared browser for CAPTCHA challenges.** `num_processes` now controls concurrent HTTP affiliation workers, without opening a browser for every worker. New HTTP requests pause when browser assistance is needed, and manual CAPTCHA challenges are handled in one visible Chrome window. Subsequent HTTP batches receive updated browser cookies. If HTTP access continues failing, the remaining profiles are read sequentially in the same browser. Chrome uses eager loading with explicit content checks.
-3. **Resumable affiliation lookups.** Each unique citing author is looked up once per run, and completed results are checkpointed after every author. Rerunning resumes from saved profiles. Aggressive and conservative affiliation results use separate caches, while every citing-paper/cited-paper relationship is preserved.
-4. **Fewer geocoding requests and reusable results.** Coordinates and address details now come from one forward lookup instead of separate forward and reverse requests. Completed lookups, including queries with no match, are cached across runs and Scholar IDs. Requests remain sequential and rate-limited, with explicit timeouts and bounded retries for transient failures. Unresolved entries remain in the CSV for manual correction. Fixed the bare exception handler that swallowed Ctrl+C during geocoding.
-5. **Removed obsolete options and dependencies.** Removed the ineffective `use_proxy` argument and the `scholarly` dependency. Removed the unused `num_processes` argument from sequential publication discovery. `num_processes` defaults to 8 and controls HTTP affiliation workers only. Existing scripts should remove `use_proxy` from their calls. Transferring browser cookies does not guarantee HTTP access, and live performance improvements have not been benchmarked.
-
-**Map background update (Nov 5, 2026).** Replaced remote OpenStreetMap tiles with bundled, public-domain Natural Earth country boundaries embedded in the HTML. This removes map-tile requests and their 403 access-blocked images while preserving interactive citation pins, popups, panning, and zooming. No tile API key or local web server is required. JavaScript and CSS still load from external CDNs.
-
-**Correctness and readability update (Nov 5, 2026).** Citation pagination now reads the next link from each newly loaded page and stops with an error on repeated links or blocked/unrecognized result pages. Empty citation results now produce zero statistics. Both marker styles share one drawing loop. Added descriptive tuple type aliases without changing cache or CSV layouts, removed the unused browser `profile` argument, and removed a duplicated delay during organization lookup.
+1. **Improved Google Scholar fetching and CAPTCHA handling.** All manual CAPTCHA challenges are now handled in one shared Chrome window.
+2. **Faster, resumable affiliation lookups.** Added concurrent lookups and caching so interrupted runs can resume. `num_processes` now defaults to 8.
+3. **Improved geocoding.** Reduced repeated requests, added reusable location caches, and fixed Ctrl+C interruption.
+4. **A more reliable world map background.** Switched to embedded country boundaries to avoid blocked map tiles. Pins, popups, and zooming remain interactive.
+5. Fixed citation pagination and empty-result handling, cleaned up the code, and removed the obsolete `use_proxy` option and `scholarly` dependency.
 
 </details>
 
