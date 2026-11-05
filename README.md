@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
 Repeat these steps if another CAPTCHA appears.
 
-## Expected Outcome
+## Example Outcome
 You will be given an **HTML file** as the output of the script.
 
 If you open it on a browser, you will see your own version of the following citation world map.

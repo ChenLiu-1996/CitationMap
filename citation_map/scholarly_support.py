@@ -168,6 +168,13 @@ def wait_for_profile_content(driver, element_id, requested_url=None):
                 print('GOOGLE SCHOLAR ACCESS PAUSED')
                 print('Sorry, Google has flagged requests from your computer or network as suspicious. '
                       'CitationMap may be sending too many requests.')
+                print('You can press Ctrl+C and rerun later after Google allows access again. '
+                      'Rerunning will resume from saved progress.')
+                print('='*60, flush=True)
+                # This is an access block, not a verification task. Wait silently
+                # so no CAPTCHA prompt, page details, or progress bar follows it.
+                input()
+                continue
             elif state == 'bad_request':
                 print('\n[WARNING] Google rejected this request as malformed or illegal. '
                       'This error page is not a CAPTCHA.')
@@ -176,19 +183,9 @@ def wait_for_profile_content(driver, element_id, requested_url=None):
             if requested_url:
                 print('Requested Scholar URL: %s' % requested_url)
             print('URL: %s. Page title: %s.' % (driver.current_url, driver.title))
-            if state == 'query_block':
-                print('You can press Ctrl+C and rerun later, after Google allows access again. '
-                      'With caching enabled, use the same Scholar ID and cache folder to resume '
-                      'from the last saved page instead of starting over.')
-                print('Keep your cache folder. If caching is disabled (cache_folder=None), '
-                      'discovery progress cannot be resumed after stopping.')
-                print('No further requests will be sent while waiting here. '
-                      'Press Enter only when Scholar results are available in the shared Chrome window.')
-                print('='*60)
-            else:
-                print('Check the shared Chrome window. Wait for the page to load, or reload it '
-                      'and resolve any access challenge. Keep Chrome open. '
-                      'This run will wait for you; press Ctrl+C to stop.')
+            print('Check the shared Chrome window. Wait for the page to load, or reload it '
+                  'and resolve any access challenge. Keep Chrome open. '
+                  'This run will wait for you; press Ctrl+C to stop.')
             # Keep this prompt compatible with the desktop app's Continue button.
             print('Press Enter here after you have solved it...', flush=True)
             input()
