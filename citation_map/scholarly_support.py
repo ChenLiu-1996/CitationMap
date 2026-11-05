@@ -19,6 +19,7 @@ from urllib.request import Request, HTTPCookieProcessor, build_opener
 from bs4 import BeautifulSoup
 from typing import List, Tuple
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
@@ -72,12 +73,36 @@ def wait_for_captcha(driver):
         _wait_for_captcha_locked(driver)
 
 
+def _captcha_present(driver, source=None):
+    """Recognize a challenge, rather than CAPTCHA words in research results."""
+    soup = BeautifulSoup(driver.page_source if source is None else source, 'html.parser')
+    # A failed verification redirect can itself show Google's Bad Request page.
+    # Its /sorry URL does not mean there is still a CAPTCHA to solve.
+    if 'malformed or illegal request' in soup.get_text(' ', strip=True).lower():
+        return False
+    if soup.select_one(
+            'form[action*="/sorry"], .g-recaptcha, .h-captcha, '
+            'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], '
+            'input[name="captcha"], input[name="captcha_response"]') is not None:
+        return True
+    # A plain automated-query block offers no CAPTCHA. Do not repeatedly tell
+    # the user to solve one solely because Google's error URL contains /sorry.
+    if 'may be sending automated queries' in soup.get_text(' ', strip=True).lower():
+        return False
+    if urlparse(driver.current_url).path.startswith('/sorry'):
+        return True
+    # Scholar pages can contain CAPTCHA scripts and papers about CAPTCHA. Neither
+    # means a verification challenge is actually on screen.
+    for node in soup.select('script, style, template, .gs_ri, #gsc_a_b'):
+        node.decompose()
+    text = soup.get_text(' ', strip=True).lower()
+    return any(marker in text for marker in (
+        'unusual traffic', 'not a robot', 'complete the captcha',
+        'solve the captcha', 'verify you are human'))
+
+
 def _wait_for_captcha_locked(driver):
-    while True:
-        page_source = driver.page_source.lower()
-        if not any(marker in page_source for marker in
-                   ('captcha', 'not a robot', 'unusual traffic')):
-            break
+    while _captcha_present(driver):
         print("\n" + "="*60)
         print("CAPTCHA DETECTED! Please solve it in the browser.")
         print('Browser: %s. URL: %s' % (threading.current_thread().name, driver.current_url))
@@ -88,14 +113,80 @@ def _wait_for_captcha_locked(driver):
     return
 
 
-def wait_for_profile_content(driver, element_id):
-    """Eager navigation needs the expected content or an actionable error page."""
+def wait_for_profile_content(driver, element_id, requested_url=None):
+    """Pause for manual recovery until content or a definite missing page appears."""
     def ready(browser):
         source = browser.page_source
-        return (element_id in source or any(marker in source.lower() for marker in
-                ('captcha', 'not a robot', 'unusual traffic', 'forbidden',
-                 'access denied', 'profile not found', '404.')))
-    WebDriverWait(driver, 20).until(ready)
+        soup = BeautifulSoup(source, 'html.parser')
+        text = soup.get_text(' ', strip=True).lower()
+        if 'malformed or illegal request' in text:
+            return ('bad_request', source)
+        # Check challenges before content: a challenge page can still contain
+        # fragments of the results markup. It must never count as usable results.
+        if _captcha_present(browser, source):
+            return ('captcha', source)
+        if soup.find(id=element_id) is not None:
+            return ('content', source)
+        if 'may be sending automated queries' in text:
+            return ('query_block', source)
+        if any(marker in text for marker in ('forbidden', 'access denied')):
+            return ('blocked', source)
+        if any(marker in text for marker in ('profile not found', '404.')):
+            return ('missing', source)
+        return False
+
+    while True:
+        try:
+            state, source = WebDriverWait(driver, 20).until(ready)
+        except TimeoutException:
+            state = 'unrecognized'
+        if state == 'captcha':
+            wait_for_captcha(driver)
+            # Verification can redirect or take time to load the results. Start
+            # a fresh check rather than letting another challenge reach the parser.
+            continue
+        if state in ('content', 'missing'):
+            # Parse this checked snapshot, rather than reading a redirected or
+            # partially replaced page from Chrome a second time.
+            return source
+
+        # An access block or unfamiliar page needs the user's attention, even if
+        # it does not contain one of our known CAPTCHA markers. Waiting for input
+        # has no timeout, and repeated Enter presses do not discard partial work.
+        if state == 'query_block':
+            print('\n[WARNING] Google is blocking automated queries. '
+                  'This page does not provide a CAPTCHA to solve.')
+        elif state == 'bad_request':
+            print('\n[WARNING] Google rejected this request as malformed or illegal. '
+                  'This error page is not a CAPTCHA.')
+        else:
+            print('\n[WARNING] Google Scholar has not provided the expected content (%s).' % element_id)
+        if requested_url:
+            print('Requested Scholar URL: %s' % requested_url)
+        print('URL: %s. Page title: %s.' % (driver.current_url, driver.title))
+        if state == 'query_block':
+            print('Leave this run paused instead of repeatedly reloading or restarting. '
+                  'No further requests will be sent while waiting for Enter. '
+                  'Continue only after Scholar results are available in the shared Chrome window. '
+                  'There is no guaranteed wait duration; press Ctrl+C to stop.')
+        else:
+            print('Check the shared Chrome window. Wait for the page to load, or reload it '
+                  'and resolve any access challenge. Keep Chrome open. '
+                  'This run will wait for you; press Ctrl+C to stop.')
+        # Keep this prompt compatible with the desktop app's Continue button.
+        print('Press Enter here after you have solved it...')
+        input()
+
+
+def _load_scholar_page(driver, url, element_id):
+    """Recover from navigation timeouts using the existing visible Chrome page."""
+    try:
+        driver.get(url)
+    except TimeoutException:
+        # Chrome can time out before our content/CAPTCHA check gets a chance to
+        # run. The page may still be loading; do not close or skip that page.
+        print('[WARNING] Chrome navigation timed out for %s. Checking the open page.' % url)
+    return wait_for_profile_content(driver, element_id, requested_url=url)
 
 
 def get_author_profile(author_id: str) -> dict:
@@ -103,10 +194,8 @@ def get_author_profile(author_id: str) -> dict:
     driver = get_driver()
     time.sleep(random.uniform(1, 5))
     url = 'https://scholar.google.com/citations?' + urlencode({'user': author_id, 'hl': 'en'})
-    driver.get(url)
-    wait_for_profile_content(driver, 'gsc_prf_in')
-    wait_for_captcha(driver)
-    return parse_author_profile(driver.page_source, url)
+    html = _load_scholar_page(driver, url, 'gsc_prf_in')
+    return parse_author_profile(html, url)
 
 
 def parse_author_profile(html, url):
@@ -285,10 +374,8 @@ def get_publication_citation_links(scholar_id: str) -> List[Tuple[str, str]]:
         url = 'https://scholar.google.com/citations?' + urlencode({
             'user': scholar_id, 'hl': 'en', 'cstart': start, 'pagesize': 100})
         time.sleep(random.uniform(1, 5))
-        driver.get(url)
-        wait_for_profile_content(driver, 'gsc_prf_in')
-        wait_for_captcha(driver)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        html = _load_scholar_page(driver, url, 'gsc_prf_in')
+        soup = BeautifulSoup(html, 'html.parser')
         if soup.find(id='gsc_prf_in') is None or soup.find(id='gsc_a_b') is None:
             raise RuntimeError(f'Cannot read publications from {url}. '
                                'The page may be blocked or unavailable; check the Chrome window.')
@@ -347,14 +434,9 @@ def get_citing_author_ids_and_citing_papers(paper_url: str) -> List[Tuple[str, s
             raise RuntimeError(f'Citation pagination repeated a page: {current_url}')
         visited_urls.add(current_url)
         time.sleep(random.uniform(1, 5))
-        driver.get(current_url)
-        wait_for_profile_content(driver, 'gs_res_ccl')
-        wait_for_captcha(driver)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        if any(marker in soup.get_text(' ', strip=True).lower()
-               for marker in ('access denied', 'forbidden')):
-            raise RuntimeError(f'Google Scholar blocked citation results at {current_url}. '
-                               'Check the shared Chrome window before rerunning.')
+        print('[INFO] Reading citing-results page %d: %s' % (current_page_number, current_url))
+        html = _load_scholar_page(driver, current_url, 'gs_res_ccl')
+        soup = BeautifulSoup(html, 'html.parser')
         # An unrecognized error page is not evidence that there are no citations.
         if soup.find(id='gs_res_ccl') is None:
             raise RuntimeError(f'Cannot read citation results at {current_url}. '
@@ -386,11 +468,9 @@ def get_organization_name(organization_id: str) -> str:
 
     # One delay per navigation is sufficient; avoid sleeping twice for one page.
     time.sleep(random.uniform(1, 5))
-    driver.get(url)
-    wait_for_profile_content(driver, 'gsc_authors_header')
-    wait_for_captcha(driver)
+    html = _load_scholar_page(driver, url, 'gsc_authors_header')
 
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    soup = BeautifulSoup(html, 'html.parser')
     tag = soup.find('h2', {'class': 'gsc_authors_header'})
     if not tag:
         raise Exception(f'When getting organization name, failed to parse {url}.')
