@@ -8,7 +8,10 @@ parsed profiles or ask the coordinator for browser assistance; they never launch
 browsers or read terminal input. No installed scholarly code is patched.
 """
 import random
+import hashlib
+import json
 import os
+import tempfile
 import time
 import threading
 from collections import deque
@@ -17,7 +20,8 @@ from http.cookiejar import Cookie, CookieJar
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, HTTPCookieProcessor, build_opener
 from bs4 import BeautifulSoup
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
+from tqdm import tqdm
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -61,7 +65,7 @@ def get_driver():
         else:
             global_driver = webdriver.Chrome(options=options)
         global_driver.set_page_load_timeout(30)
-        print('[INFO] Shared Chrome window opened. Keep it open for CAPTCHA challenges.')
+        tqdm.write('[INFO] Shared Chrome window opened. Keep it open for CAPTCHA challenges.')
     return global_driver
 
 
@@ -103,12 +107,16 @@ def _captcha_present(driver, source=None):
 
 def _wait_for_captcha_locked(driver):
     while _captcha_present(driver):
-        print("\n" + "="*60)
-        print("CAPTCHA DETECTED! Please solve it in the browser.")
-        print('Browser: %s. URL: %s' % (threading.current_thread().name, driver.current_url))
-        print("Press Enter here after you have solved it...")
-        print("="*60)
-        input()  # Wait for user to press Enter
+        # Hold tqdm's display lock and clear the bars throughout the pause.
+        # Plain prints inside this context keep the Enter prompt as the last line;
+        # tqdm.write() would redraw the bar immediately after each message.
+        with tqdm.external_write_mode():
+            print("\n" + "="*60)
+            print("CAPTCHA DETECTED! Please solve it in the browser.")
+            print('Browser: %s. URL: %s' % (threading.current_thread().name, driver.current_url))
+            print("="*60)
+            print("Press Enter here after you have solved it...", flush=True)
+            input()  # The progress bar resumes only after Enter is received.
         time.sleep(1)
     return
 
@@ -153,29 +161,31 @@ def wait_for_profile_content(driver, element_id, requested_url=None):
         # An access block or unfamiliar page needs the user's attention, even if
         # it does not contain one of our known CAPTCHA markers. Waiting for input
         # has no timeout, and repeated Enter presses do not discard partial work.
-        if state == 'query_block':
-            print('\n[WARNING] Google is blocking automated queries. '
-                  'This page does not provide a CAPTCHA to solve.')
-        elif state == 'bad_request':
-            print('\n[WARNING] Google rejected this request as malformed or illegal. '
-                  'This error page is not a CAPTCHA.')
-        else:
-            print('\n[WARNING] Google Scholar has not provided the expected content (%s).' % element_id)
-        if requested_url:
-            print('Requested Scholar URL: %s' % requested_url)
-        print('URL: %s. Page title: %s.' % (driver.current_url, driver.title))
-        if state == 'query_block':
-            print('Leave this run paused instead of repeatedly reloading or restarting. '
-                  'No further requests will be sent while waiting for Enter. '
-                  'Continue only after Scholar results are available in the shared Chrome window. '
-                  'There is no guaranteed wait duration; press Ctrl+C to stop.')
-        else:
-            print('Check the shared Chrome window. Wait for the page to load, or reload it '
-                  'and resolve any access challenge. Keep Chrome open. '
-                  'This run will wait for you; press Ctrl+C to stop.')
-        # Keep this prompt compatible with the desktop app's Continue button.
-        print('Press Enter here after you have solved it...')
-        input()
+        # Keep the recovery prompt unobstructed for the entire input wait too.
+        with tqdm.external_write_mode():
+            if state == 'query_block':
+                print('\n[WARNING] Google is blocking automated queries. '
+                      'This page does not provide a CAPTCHA to solve.')
+            elif state == 'bad_request':
+                print('\n[WARNING] Google rejected this request as malformed or illegal. '
+                      'This error page is not a CAPTCHA.')
+            else:
+                print('\n[WARNING] Google Scholar has not provided the expected content (%s).' % element_id)
+            if requested_url:
+                print('Requested Scholar URL: %s' % requested_url)
+            print('URL: %s. Page title: %s.' % (driver.current_url, driver.title))
+            if state == 'query_block':
+                print('Leave this run paused instead of repeatedly reloading or restarting. '
+                      'No further requests will be sent while waiting for Enter. '
+                      'Continue only after Scholar results are available in the shared Chrome window. '
+                      'There is no guaranteed wait duration; press Ctrl+C to stop.')
+            else:
+                print('Check the shared Chrome window. Wait for the page to load, or reload it '
+                      'and resolve any access challenge. Keep Chrome open. '
+                      'This run will wait for you; press Ctrl+C to stop.')
+            # Keep this prompt compatible with the desktop app's Continue button.
+            print('Press Enter here after you have solved it...', flush=True)
+            input()
 
 
 def _load_scholar_page(driver, url, element_id):
@@ -185,7 +195,7 @@ def _load_scholar_page(driver, url, element_id):
     except TimeoutException:
         # Chrome can time out before our content/CAPTCHA check gets a chance to
         # run. The page may still be loading; do not close or skip that page.
-        print('[WARNING] Chrome navigation timed out for %s. Checking the open page.' % url)
+        tqdm.write('[WARNING] Chrome navigation timed out for %s. Checking the open page.' % url)
     return wait_for_profile_content(driver, element_id, requested_url=url)
 
 
@@ -290,7 +300,7 @@ def iter_author_profiles(author_ids, num_processes=8):
             # Cookie transfer does not guarantee HTTP access. After two batches
             # with failures and no HTTP successes, stop retrying that transport.
             if blocked_batches >= 2:
-                print('[INFO] HTTP access is still failing after browser verification. '
+                tqdm.write('[INFO] HTTP access is still failing after browser verification. '
                       'Using the same Chrome window sequentially for remaining profiles.')
                 for author_id in pending:
                     yield author_id, get_author_profile(author_id)
@@ -309,7 +319,7 @@ def iter_author_profiles(author_ids, num_processes=8):
                 try:
                     profile = future.result()
                 except ProfileNeedsBrowser as error:
-                    print('[INFO] HTTP lookup needs the shared browser: %s' % error)
+                    tqdm.write('[INFO] HTTP lookup needs the shared browser: %s' % error)
                     browser_required.append(author_id)
                 else:
                     if profile is None:
@@ -323,7 +333,7 @@ def iter_author_profiles(author_ids, num_processes=8):
                 yield result
             if browser_required:
                 blocked_batches = blocked_batches + 1 if not completed else 0
-                print('[INFO] HTTP workers paused. Resolve any challenges in the shared Chrome window.')
+                tqdm.write('[INFO] HTTP workers paused. Resolve any challenges in the shared Chrome window.')
                 for author_id in browser_required:
                     yield author_id, get_author_profile(author_id)
             else:
@@ -356,7 +366,7 @@ def get_html_per_citation_page(soup) -> List[Tuple[str, str]]:
                     citing_authors_and_citing_papers.append((author_id, title))
                     paper_parsed = True
             if not paper_parsed:
-                print("[WARNING!] Could not find author links for ", title)
+                tqdm.write("[WARNING!] Could not find author links for %s" % title)
                 citing_authors_and_citing_papers.append((NO_AUTHOR_FOUND_STR, title))
         else:
             continue
@@ -416,32 +426,61 @@ def get_publication_citation_links(scholar_id: str) -> List[Tuple[str, str]]:
     return publications
 
 
-def get_citing_author_ids_and_citing_papers(paper_url: str) -> List[Tuple[str, str]]:
+def get_citing_author_ids_and_citing_papers(
+    paper_url: str,
+    progress_callback: Optional[Callable[[int], None]] = None,
+    page_cache_folder: Optional[str] = None,
+) -> List[Tuple[str, str]]:
     """Read author IDs and paper titles from all pages of a publication's citations.
 
     paper_url is the "cited by" results URL for the publication being cited.
     All navigation stays in the shared Chrome window for manual CAPTCHA handling.
+    The optional callback updates the caller's progress bar before each page load.
+    With page_cache_folder, every parsed page and its next link are saved before
+    proceeding. Reruns follow that saved chain without requesting completed pages.
     """
-    driver = get_driver()
+    driver = None  # Entirely cached citation lists do not need to open Chrome.
     results = []
     visited_urls = set()
     current_url = paper_url
     current_page_number = 1
+    cached_pages = 0
     while current_url:
         # A malformed or repeated next link must not cause an infinite loop or a
         # successful-looking, incomplete citation cache.
         if current_url in visited_urls:
             raise RuntimeError(f'Citation pagination repeated a page: {current_url}')
         visited_urls.add(current_url)
+        cache_path = (os.path.join(page_cache_folder,
+                                  hashlib.sha256(current_url.encode('utf-8')).hexdigest() + '.json')
+                      if page_cache_folder else None)
+        if cache_path and os.path.exists(cache_path):
+            with open(cache_path, encoding='utf-8') as saved:
+                page = json.load(saved)
+            if page.get('version') != 1 or page.get('url') != current_url:
+                raise RuntimeError('Unrecognized citation-page checkpoint: %s' % cache_path)
+            results.extend(tuple(entry) for entry in page['results'])
+            current_url = page['next_url']
+            current_page_number += 1
+            cached_pages += 1
+            continue
+        if cached_pages:
+            tqdm.write('[INFO] Reused %d saved citing-results pages; resuming at page %d.' % (
+                cached_pages, current_page_number))
+            cached_pages = 0
+        if driver is None:
+            driver = get_driver()
         time.sleep(random.uniform(1, 5))
-        print('[INFO] Reading citing-results page %d: %s' % (current_page_number, current_url))
+        if progress_callback is not None:
+            progress_callback(current_page_number)
+        tqdm.write('[INFO] Reading citing-results page %d: %s' % (current_page_number, current_url))
         html = _load_scholar_page(driver, current_url, 'gs_res_ccl')
         soup = BeautifulSoup(html, 'html.parser')
         # An unrecognized error page is not evidence that there are no citations.
         if soup.find(id='gs_res_ccl') is None:
             raise RuntimeError(f'Cannot read citation results at {current_url}. '
                                'Check the shared Chrome window before rerunning.')
-        results.extend(get_html_per_citation_page(soup))
+        page_results = get_html_per_citation_page(soup)
 
         # Read navigation from the page we just loaded, not the original page.
         # Scholar's visible page-number links change as we advance through results.
@@ -451,10 +490,29 @@ def get_citing_author_ids_and_citing_papers(paper_url: str) -> List[Tuple[str, s
             # Some layouts expose a Next arrow instead of a numbered link.
             arrow = soup.select_one('#gs_n a[href] .gs_ico_nav_next')
             next_link = arrow.find_parent('a') if arrow is not None else None
-        if next_link is None:
-            break
-        current_url = urljoin(current_url, next_link['href'])
+        next_url = urljoin(current_url, next_link['href']) if next_link is not None else None
+        if next_url in visited_urls:
+            raise RuntimeError(f'Citation pagination repeated a page: {next_url}')
+        if cache_path:
+            # Write a separate file per page, including the final page. Replacing
+            # it atomically prevents an interrupted write from looking complete.
+            os.makedirs(page_cache_folder, exist_ok=True)
+            temporary_path = None
+            try:
+                with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',
+                                                 dir=page_cache_folder, delete=False) as saved:
+                    temporary_path = saved.name
+                    json.dump({'version': 1, 'url': current_url,
+                               'results': page_results, 'next_url': next_url}, saved)
+                os.replace(temporary_path, cache_path)
+            finally:
+                if temporary_path and os.path.exists(temporary_path):
+                    os.unlink(temporary_path)
+        results.extend(page_results)
+        current_url = next_url
         current_page_number += 1
+    if cached_pages:
+        tqdm.write('[INFO] Reused %d saved citing-results pages; this publication is complete.' % cached_pages)
     return results
 
 

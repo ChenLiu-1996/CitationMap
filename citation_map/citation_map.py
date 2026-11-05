@@ -42,7 +42,8 @@ GeocodedCitation = Tuple[
 KnownAffiliation = Tuple[str, str, str, str, float, float]
 
 
-def find_all_citing_authors(scholar_id: str) -> List[CitingAuthorPaper]:
+def find_all_citing_authors(scholar_id: str,
+                           progress_cache_folder: Optional[str] = None) -> List[CitingAuthorPaper]:
     '''
     Step 1. Find all publications of the given Google Scholar ID.
     Step 2. Find all citing authors.
@@ -52,13 +53,34 @@ def find_all_citing_authors(scholar_id: str) -> List[CitingAuthorPaper]:
     # "cited by" links directly from Chrome instead: the manual CAPTCHA flow is
     # then visible, and separate publication-metadata requests are unnecessary.
     # Discovery stays sequential because it uses the shared browser.
-    publications = get_publication_citation_links(scholar_id)
+    # Reuse the publication list as well as citation pages when a large profile
+    # is interrupted. No browser requests are needed for already completed work.
+    publications_path = (os.path.join(progress_cache_folder, 'publications.pkl')
+                         if progress_cache_folder else None)
+    if publications_path and os.path.exists(publications_path):
+        publications = load_cache(publications_path)
+        print('Loaded the publication list from the discovery checkpoint.')
+    else:
+        publications = get_publication_citation_links(scholar_id)
+        if publications_path:
+            save_cache(publications, publications_path)
+    page_cache_folder = (os.path.join(progress_cache_folder, 'citation_pages')
+                         if progress_cache_folder else None)
     print('Found %d publication citation links.\n' % len(publications))
     entries = []
-    for citation_url, cited_title in tqdm(publications, desc='Finding citing authors and papers',
-                                          total=len(publications)):
-        for author_id, citing_title in get_citing_author_ids_and_citing_papers(citation_url):
-            entries.append((author_id, citing_title, cited_title))
+    with tqdm(total=len(publications), desc='Finding citing authors and papers',
+              unit='publication') as progress:
+        # Publication completion and citation-page navigation are different:
+        # keep the main count accurate while showing activity within each paper.
+        def show_citation_page(page_number):
+            progress.set_postfix_str('citation page %d' % page_number)
+
+        for citation_url, cited_title in publications:
+            for author_id, citing_title in get_citing_author_ids_and_citing_papers(
+                    citation_url, progress_callback=show_citation_page,
+                    page_cache_folder=page_cache_folder):
+                entries.append((author_id, citing_title, cited_title))
+            progress.update(1)
     return entries
 
 def find_all_citing_affiliations(all_citing_author_paper_tuple_list: List[CitingAuthorPaper],
@@ -435,7 +457,8 @@ def generate_citation_map(scholar_id: str,
         If True, will directly jump to Step 5.2, using the information loaded from the csv.
     cache_folder: str
         (default is 'cache')
-        The folder to save intermediate results, after finding (author, paper) but before finding the affiliations.
+        The folder to save discovery checkpoints and intermediate results.
+        Completed citation pages are reused if a discovery run is interrupted.
         This is because the user might want to try the aggressive vs. conservative approach.
         Set to None if you do not want caching.
     affiliation_conservative: bool
@@ -463,11 +486,15 @@ def generate_citation_map(scholar_id: str,
             cache_path = None
 
         if cache_path is None or not os.path.exists(cache_path):
-            print('No cache found for this author. Finding citing authors from scratch.\n')
+            print('No completed discovery cache found. Finding citing authors; '
+                  'completed page checkpoints will be reused when available.\n')
 
             # NOTE: Step 1. Find all publications of the given Google Scholar ID.
             #       Step 2. Find all citing authors.
-            all_citing_author_paper_tuple_list = find_all_citing_authors(scholar_id=scholar_id)
+            all_citing_author_paper_tuple_list = find_all_citing_authors(
+                scholar_id=scholar_id,
+                progress_cache_folder=os.path.join(cache_folder, scholar_id, 'discovery')
+                if cache_folder is not None else None)
             print('A total of %d citing authors recorded.\n' % len(all_citing_author_paper_tuple_list))
             if cache_path is not None and len(all_citing_author_paper_tuple_list) > 0:
                 save_cache(all_citing_author_paper_tuple_list, cache_path)
