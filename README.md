@@ -45,9 +45,9 @@
 I am [Chen Liu](https://chenliu-1996.github.io/), a Computer Science PhD Candidate at Yale University.
 
 ## [New!] Desktop App Version
-I have just made my first attemp to release an Desktop App for <code>CitationMap</code>.
+I have just made my first attemp to release an Desktop App for <code>CitationMap</code>. 
 
-So far, I am only able to produce a newbie MacOS version for MacBook with Apple Silicon chip. [You can download it here](https://github.com/ChenLiu-1996/CitationMap/releases/download/App-Desktop-MacOS/CitationMap-macOS-arm64.zip).
+- [MacOS version for MacBook with Apple Silicon chip](https://github.com/ChenLiu-1996/CitationMap/releases/download/App-Desktop-MacOS/CitationMap-macOS-arm64.zip).
 
 
 ## Purpose
