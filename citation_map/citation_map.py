@@ -207,8 +207,8 @@ def affiliation_text_to_geocode(author_paper_affiliation_tuple_list: List[Author
             fields = None
             if affiliation_invalid(affiliation_name):
                 pass
-            elif fill_known_affiliations(affiliation_name) is not None:
-                county, city, state, country, latitude, longitude = fill_known_affiliations(affiliation_name)
+            elif (known_affiliation := fill_known_affiliations(affiliation_name)) is not None:
+                county, city, state, country, latitude, longitude = known_affiliation
                 fields = (latitude, longitude, county, city, state, country)
             elif key in cached:
                 fields = cached[key]

@@ -7,6 +7,12 @@ verification. Affiliation workers use standard-library HTTP requests and return
 parsed profiles or ask the coordinator for browser assistance; they never launch
 browsers or read terminal input. No installed scholarly code is patched.
 """
+import atexit
+from html import escape
+from pathlib import Path
+import shutil
+import socket
+import subprocess
 import random
 import hashlib
 import json
@@ -18,13 +24,15 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.cookiejar import Cookie, CookieJar
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, HTTPCookieProcessor, build_opener
+from urllib.request import Request, HTTPCookieProcessor, build_opener, ProxyHandler
 from bs4 import BeautifulSoup
 from typing import Callable, List, Optional, Tuple
 from tqdm import tqdm
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.selenium_manager import SeleniumManager
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 NO_AUTHOR_FOUND_STR = 'No_author_found'
@@ -47,15 +55,131 @@ KNOWN_AFFILIATION_DICT = {
 global_driver = None
 _captcha_lock = threading.Lock()
 
+def verification_page(url):
+    return '''<!doctype html><html lang="en"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CitationMap · Google Scholar verification</title>
+<style>body{font:18px/1.6 system-ui,sans-serif;color:#183028;background:#f5f8f6;
+max-width:540px;margin:15vh auto;padding:24px}h1{font-size:32px;line-height:1.25;margin-bottom:8px}
+h2{font-size:24px;line-height:1.3;margin-top:0;font-weight:500}
+a{display:inline-block;margin-top:12px;padding:12px 20px;background:#255cc7;
+color:white;text-decoration:none;border-radius:8px}a:focus-visible{outline:3px solid #222;outline-offset:4px}</style>
+<h1>CitationMap</h1>
+<h2>Google Scholar verification</h2>
+<ol>
+<li>You may need to solve more than one CAPTCHA.</li>
+<li>Keep this pop-up window open until CitationMap finishes running, even after solving the CAPTCHAs.</li>
+<li>CitationMap resumes automatically after you complete verification. You do not need to press Enter or click a resume button.</li>
+</ol>
+<a href="%s">Continue to Google Scholar</a></html>''' % escape(url, quote=True)
+
+
+def _close_owned_browser(process, profile):
+    try:
+        if process is not None and process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+    finally:
+        shutil.rmtree(profile, ignore_errors=True)
+
+
+class CitationChrome(webdriver.Chrome):
+    """ChromeDriver connection with ownership of its dedicated Chrome process."""
+
+    def show_verification(self):
+        """Explain verification in a temporary tab without reloading the challenge."""
+        challenge = self.current_window_handle
+        page = Path(self._citation_profile) / 'citationmap-welcome.html'
+        page.write_text(verification_page('#continue'), encoding='utf-8')
+        self.switch_to.new_window('tab')
+        introduction = self.current_window_handle
+        try:
+            super().get(page.as_uri())
+            print('[INFO] In Chrome, select Continue to Google Scholar. '
+                  'Keep that window open during verification.', flush=True)
+            while introduction in self.window_handles:
+                self.switch_to.window(introduction)
+                if self.current_url.endswith('#continue'):
+                    break
+                time.sleep(.25)
+        finally:
+            # Closing the explanation manually also returns to the challenge.
+            if introduction in self.window_handles:
+                self.switch_to.window(introduction)
+                self.close()
+            if challenge in self.window_handles:
+                self.switch_to.window(challenge)
+
+    def quit(self):
+        if getattr(self, '_citation_closed', False):
+            return
+        self._citation_closed = True
+        atexit.unregister(self.quit)
+        try:
+            super().quit()
+        finally:
+            profile = getattr(self, '_citation_profile', None)
+            if profile is not None:
+                _close_owned_browser(self._citation_process, profile)
+
+
+def open_chrome(options):
+    """Use normal Chrome startup and attach, rather than ChromeDriver startup."""
+    arguments = ['--browser', 'chrome']
+    if options.binary_location:
+        arguments += ['--browser-path', options.binary_location]
+    paths = SeleniumManager().binary_paths(arguments)
+    binary = paths['browser_path']
+    profile = tempfile.mkdtemp(prefix='citationmap-chrome-')
+    process = None
+    try:
+        with socket.socket() as port_socket:
+            port_socket.bind(('127.0.0.1', 0))
+            port = port_socket.getsockname()[1]
+        process = subprocess.Popen([
+            binary, '--user-data-dir=' + profile,
+            '--remote-debugging-address=127.0.0.1',
+            '--remote-debugging-port=' + str(port),
+            '--no-first-run', '--no-default-browser-check', 'about:blank',
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        opener = build_opener(ProxyHandler({}))
+        deadline = time.monotonic() + 20
+        while True:
+            if process.poll() is not None:
+                raise RuntimeError('Chrome closed before CitationMap could connect.')
+            try:
+                with opener.open('http://127.0.0.1:%d/json/version' % port, timeout=1) as response:
+                    json.load(response)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('CitationMap could not connect to its Chrome window.')
+                time.sleep(.2)
+        options.binary_location = binary
+        options.debugger_address = '127.0.0.1:%d' % port
+        driver = CitationChrome(service=Service(paths['driver_path']), options=options)
+        driver._citation_process = process
+        driver._citation_profile = profile
+        atexit.register(driver.quit)
+        return driver
+    except BaseException:
+        _close_owned_browser(process, profile)
+        raise
+
+
 def get_driver():
     """Return the single Chrome instance shared by all browser-based lookups."""
     global global_driver
     # Only the coordinating thread uses Selenium. All stages share this window.
-    # Eager navigation returns when the DOM is ready; callers explicitly wait for
-    # the expected content or a challenge before parsing the page.
+    # Local Chrome is launched normally, then connected to ChromeDriver.
+    # Callers still check for expected content or a challenge before parsing.
     if global_driver is None:
         options = webdriver.ChromeOptions()
-        options.page_load_strategy = 'eager'
+        options.page_load_strategy = 'normal'
         # The optional web pilot runs Chrome in a Selenium container so visitors
         # can operate that same session through its noVNC browser view. Ordinary
         # scripts keep launching local Chrome exactly as before.
@@ -63,7 +187,7 @@ def get_driver():
         if remote_url:
             global_driver = webdriver.Remote(command_executor=remote_url, options=options)
         else:
-            global_driver = webdriver.Chrome(options=options)
+            global_driver = open_chrome(options)
         global_driver.set_page_load_timeout(30)
         tqdm.write('[INFO] Shared Chrome window opened. Keep it open for CAPTCHA challenges.')
     return global_driver
@@ -105,20 +229,24 @@ def _captcha_present(driver, source=None):
         'solve the captcha', 'verify you are human'))
 
 
-def _wait_for_captcha_locked(driver):
-    while _captcha_present(driver):
-        # Hold tqdm's display lock and clear the bars throughout the pause.
-        # Plain prints inside this context keep the Enter prompt as the last line;
-        # tqdm.write() would redraw the bar immediately after each message.
-        with tqdm.external_write_mode():
-            print("\n" + "="*60)
-            print("CAPTCHA DETECTED! Please solve it in the browser.")
-            print('Browser: %s. URL: %s' % (threading.current_thread().name, driver.current_url))
-            print("="*60)
-            print("Press Enter here after you have solved it...", flush=True)
-            input()  # The progress bar resumes only after Enter is received.
+def _observe_captcha_clear(driver):
+    """Wait through consecutive challenges and brief verification redirects."""
+    clear_observations = 0
+    while clear_observations < 3:
         time.sleep(1)
-    return
+        if _captcha_present(driver):
+            clear_observations = 0
+        else:
+            clear_observations += 1
+
+
+def _wait_for_captcha_locked(driver):
+    # Keep the progress bars clear while the user completes verification.
+    with tqdm.external_write_mode():
+        print('\nCAPTCHA detected. Complete verification in the Chrome window. '
+              'CitationMap will resume automatically.', flush=True)
+        _observe_captcha_clear(driver)
+        print('Checking whether Scholar results are available.', flush=True)
 
 
 def wait_for_profile_content(driver, element_id, requested_url=None):
@@ -143,12 +271,16 @@ def wait_for_profile_content(driver, element_id, requested_url=None):
             return ('missing', source)
         return False
 
+    verification_explained = False
     while True:
         try:
             state, source = WebDriverWait(driver, 20).until(ready)
         except TimeoutException:
             state = 'unrecognized'
         if state == 'captcha':
+            if not verification_explained and isinstance(driver, CitationChrome):
+                driver.show_verification()
+                verification_explained = True
             wait_for_captcha(driver)
             # Verification can redirect or take time to load the results. Start
             # a fresh check rather than letting another challenge reach the parser.

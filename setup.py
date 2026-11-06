@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setup(
     name='citation-map',
-    version='6.5',
+    version='6.6',
     license='CC BY-NC-SA',
     author='Chen Liu',
     author_email='chen.liu.cl2482@yale.edu',
@@ -17,7 +17,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/ChenLiu-1996/CitationMap',
     keywords='citation map, citation world map, google scholar',
-    install_requires=['geopy', 'folium', 'tqdm', 'selenium', 'bs4', 'pycountry', 'pandas'],
+    install_requires=['geopy', 'folium', 'tqdm', 'selenium>=4.26', 'bs4', 'pycountry', 'pandas'],
     classifiers=[
     'Development Status :: 3 - Alpha',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers

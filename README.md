@@ -71,11 +71,13 @@ if __name__ == '__main__':
     generate_citation_map(scholar_id)
 ```
 
-**Important: keep the pop-up Chrome window open until the program finishes.** CitationMap uses this shared browser to let you solve Google Scholar CAPTCHA challenges manually. When the terminal prompts you:
+Chrome now starts in a separate temporary profile, and CitationMap connects to that window. When a CAPTCHA is detected, select **Continue to Google Scholar** on the explanation tab to return to the existing challenge. The explanation appears once per verification session. Your personal Chrome profile is not used.
+
+**Important: keep the pop-up Chrome window open until the program finishes.** CitationMap uses this shared browser to let you solve Google Scholar CAPTCHA challenges manually. When a CAPTCHA appears:
 
 1. Switch to the pop-up Chrome window and complete the CAPTCHA.
 2. **Leave that browser window open. Do not close it after solving the CAPTCHA.**
-3. Return to the terminal and **press Enter** so CitationMap can continue.
+3. CitationMap checks verification automatically and resumes once Scholar content is available. No Enter key or resume button is needed.
 
 Repeat these steps if another CAPTCHA appears.
 
@@ -162,7 +164,7 @@ Liu, Chen. "CitationMap: A Python Tool to Identify and Visualize Your Google Sch
 
     Note that in Version 4.0, we will cache the results before identifying affiliations. So if you want to rerun the same author from scratch, you need to delete the cache (default location is 'cache').
 
-    Affiliation lookups use up to `num_processes` concurrent HTTP workers and one shared visible Chrome window, with eager loading and explicit content checks. Workers retain a 1–5 second delay before requests. When HTTP access fails, new requests pause while in-flight requests finish; the shared browser then handles affected profiles. When prompted, solve the CAPTCHA in that window and press Enter in the terminal. Updated browser cookies are used in subsequent HTTP batches. Repeated HTTP rejection falls back to sequential reads in the same browser. Setting `num_processes=1` uses sequential browser lookups throughout.
+    Affiliation lookups use up to `num_processes` concurrent HTTP workers and one shared visible Chrome window, with normal loading and explicit content checks. Workers retain a 1–5 second delay before requests. When HTTP access fails, new requests pause while in-flight requests finish; the shared browser then handles affected profiles. When prompted, solve the CAPTCHA in that window; CitationMap checks verification automatically. Updated browser cookies are used in subsequent HTTP batches. Repeated HTTP rejection falls back to sequential reads in the same browser. Setting `num_processes=1` uses sequential browser lookups throughout.
 
     Each unique citing author is fetched once, and completed profile lookups are saved after every author. If the run stops, rerun the same command to resume. Aggressive and conservative affiliation caches are stored separately; the existing citation discovery cache is reused. Citation discovery and geocoding remain sequential. Geocoding results are cached in `cache/geocodes_v1.pkl` by default and shared across Scholar IDs; set `cache_folder=None` to disable disk caching.
 
@@ -218,7 +220,7 @@ Version 6.0 adds shared manual CAPTCHA handling, resumable affiliation lookups, 
 
 ## Debug
 
-1. **CAPTCHA prompts or repeated HTTP lookup failures.** Keep the shared Chrome window open, solve the displayed challenge, and press Enter in the terminal when prompted. The program may fall back to sequential browser reads. If access still fails, stop the run and try again later with `num_processes=1`. Completed affiliation and geocoding checkpoints are reused when disk caching is enabled; CAPTCHA handling does not guarantee that Google Scholar will grant access.
+1. **CAPTCHA prompts or repeated HTTP lookup failures.** Keep the shared Chrome window open, and solve the displayed challenge. CAPTCHA verification resumes automatically; other access errors may still require terminal input when prompted. The program may fall back to sequential browser reads. If access still fails, stop the run and try again later with `num_processes=1`. Completed affiliation and geocoding checkpoints are reused when disk caching is enabled; CAPTCHA handling does not guarantee that Google Scholar will grant access.
 2. **Cannot read a profile, publication list, or citation results; repeated pagination errors.** Check the page shown in Chrome for an access block or an unavailable profile. If the expected page is visible but parsing still fails, Google Scholar may have changed its markup; report the error and the relevant page URL. Unreadable or repeated pages raise errors rather than being treated as successful empty results.
 3. **Blank locations or slow geocoding.** Check the affiliation text in the CSV. Unresolved entries retain empty coordinate fields for manual correction. Ctrl+C can stop geocoding; rerunning reuses completed geocoding lookups when caching is enabled. To retry a cached no-match result, remove the corresponding geocoding cache (`cache/geocodes_v1.pkl` by default) and rerun, or correct the CSV and use `parse_csv=True`.
 4. **An older HTML map still shows blocked tile images.** Regenerate it from the existing CSV using Version 6.0 and `parse_csv=True`. The current background embeds Natural Earth boundaries and makes no map-tile requests. A completely blank map can still result from unavailable external JavaScript or CSS; check your browser's network errors.
