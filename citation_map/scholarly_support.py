@@ -69,7 +69,7 @@ color:white;text-decoration:none;border-radius:8px}a:focus-visible{outline:3px s
 <ol>
 <li>You may need to solve more than one CAPTCHA.</li>
 <li>Keep this pop-up window open until CitationMap finishes running, even after solving the CAPTCHAs.</li>
-<li>CitationMap resumes automatically after you complete verification. You do not need to press Enter or click a resume button.</li>
+<li>CitationMap resumes automatically after you complete verification.</li>
 </ol>
 <a href="%s">Continue to Google Scholar</a></html>''' % escape(url, quote=True)
 
