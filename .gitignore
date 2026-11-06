@@ -13,6 +13,7 @@ data
 **/*.npz
 **/*.csv
 **/*.html
+!app/static/index.html
 
 # Local build products and publishing configuration
 .DS_Store
