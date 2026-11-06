@@ -28,6 +28,8 @@
 
 </div>
 
+<br>
+
 &#127942; The **world's first free tool** to visualize your Google Scholar citations on a world map.
 
 &#11088; There is **NO NEED to clone or fork** this repo unless you want to make custom changes.
@@ -38,11 +40,14 @@
 
 &#128073; Due to personal reasons, I am no longer able to run `CitationMap` for you if you run into problems. Apologies.
 
-&#9888;&#65039; I was told that recently Google Scholar has updated the traffic-blocking and made CitationMap much less reliable than before. Pull requests to fix this issue are very welcome!
-
 <br>
 
 I am [Chen Liu](https://chenliu-1996.github.io/), a Computer Science PhD Candidate at Yale University.
+
+## [New!] Desktop App Version
+I have just made my first attemp to release an Desktop App for <code>CitationMap</code>.
+
+So far, I am only able to produce a newbie MacOS version for MacBook with Apple Silicon chip. [You can download it here](https://github.com/ChenLiu-1996/CitationMap/releases/download/App-Desktop-MacOS/CitationMap-macOS-arm64.zip).
 
 
 ## Purpose
@@ -80,6 +85,7 @@ Chrome now starts in a separate temporary profile, and CitationMap connects to t
 3. CitationMap checks verification automatically and resumes once Scholar content is available. No Enter key or resume button is needed.
 
 Repeat these steps if another CAPTCHA appears.
+
 
 ## Example Outcome
 You will be given an **HTML file** as the output of the script.
